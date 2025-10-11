@@ -33,7 +33,7 @@ namespace Context {
 				return current_block_owner;
 			}
 
-			bool can_apply_subroutine(const std::shared_ptr<Block> dest, const std::shared_ptr<Block> block);
+			bool can_apply_as_subroutine(const std::shared_ptr<Block> block);
 
             void set_can_apply_subroutines();
 

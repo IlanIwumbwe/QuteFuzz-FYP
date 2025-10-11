@@ -1,0 +1,110 @@
+# qiskit
+
+# TODO: control flow
+
+
+x = "x";
+y = "y";
+z = "z";
+cx = "cx";
+ch = "ch";
+cy = "cy";
+cz = "cz";
+rx = "rx";
+ry = "ry";
+rz = "rz";
+ccx = "ccx";
+v = "s"; # Qiskit's 's' gate is equivalent to pytket's 'v'
+vdg = "sdg"; # Qiskit's 'sdg' gate is equivalent to pytket's 'vdg'
+tdg = "tdg";
+t = "t";
+sdg = "sdg";
+h = "h";
+t = "t";
+s = "s";
+measure = "measure";
+
+# Redefine base program structure to fit Qiskit
+program = imports NEWLINE subroutine_defs NEWLINE block NEWLINE compiler_call;
+
+block = circuit_def_header NEWLINE body NEWLINE;
+
+body = EXTERNAL::qubit_defs EXTERNAL::bit_defs NEWLINE compound_stmts;
+
+# Redefine EXTERNAL scope for Qiskit register and circuit definitions
+EXTERNAL {
+
+    qubit_defs = (qubit_def NEWLINE)+;
+
+    bit_defs = (bit_def NEWLINE)+;
+
+    # Qiskit registers are defined by size and name, not individually
+    singular_qubit_def = 
+        qubit_def_name " = QuantumRegister(1, '" qubit_def_name "')";
+
+    register_qubit_def = 
+        qubit_def_name " = QuantumRegister(" qubit_def_size ", '" qubit_def_name "')";
+
+    singular_bit_def = 
+        bit_def_name " = ClassicalRegister(1, '" bit_def_name "')";
+
+    register_bit_def = 
+        bit_def_name " = ClassicalRegister(" bit_def_size ", '" bit_def_name "')";
+}
+
+
+imports = 
+    "from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister" NEWLINE
+    "from qiskit.circuit.library import standard_gates" NEWLINE
+    swarm_testing_imports NEWLINE
+    "from diff_testing.lib import qiskitTesting"
+    ;
+
+subroutine_def_footer = circuit_name " = " circuit_name ".to_gate()" NEWLINE;
+
+circuit_def_header = circuit_name " = QuantumCircuit(0)";
+
+compound_stmt = 
+    qubit_op
+    # | if_stmt
+    ;
+
+# Redefine compound_stmt and related rules
+compound_stmts = (compound_stmt NEWLINE)+;
+
+# Redefine gate_op for Qiskit syntax: circuit.gate(args)
+gate_op = circuit_name "." gate_name "(" gate_op_args ")";
+
+subroutine_op = circuit_name ".append(" subroutine ",[" subroutine_op_args "])";
+
+# Redefine measure gate application to fit Qiskit: circuit.measure(qbit, cbit)
+gate_name = h
+    | x
+    | y
+    | z
+    | rz
+    | rx
+    | ry
+    | s
+    | sdg
+    | t
+    | tdg
+    | v
+    | vdg
+    | cx
+    | cy
+    | cz
+    | ccx
+    | ch
+    ;
+
+# Qiskit requires qubit and bit indexing from registers
+singular_qubit = qubit_name "[0]";
+
+register_qubit = qubit_name "[" qubit_index "]";
+
+singular_bit = bit_name "[0]";
+
+register_bit = bit_name "[" bit_index "]";
+
+compiler_call = ;

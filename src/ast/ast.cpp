@@ -141,10 +141,14 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 				num_qubits = context.get_current_gate()->get_num_external_qubits();
 			}
 
+			context.reset(Context::Level::QUBIT_OP);
+
 			return std::make_shared<Qubit_list>(num_qubits);
 		}
 
 		case Token::BIT_LIST:
+			context.reset(Context::Level::QUBIT_OP);
+
 			return std::make_shared<Bit_list>(context.get_current_gate()->get_num_external_bits());
 
 		case Token::FLOAT_LIST:
@@ -178,17 +182,14 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 			return std::make_shared<Gate_name>(parent, context.get_current_block(), swarm_testing_gateset);
 
 		case Token::SUBROUTINE: {
-			std::shared_ptr<Block> subroutine = context.get_random_block();
+			std::shared_ptr<Block> subroutine_block = context.get_random_block();
+
+			subroutine_block->print_info();
+
+			std::shared_ptr<Gate> subroutine_gate = context.new_gate(str, kind, subroutine_block->get_qubit_defs()); 
+			subroutine_gate->add_child(std::make_shared<Variable>(subroutine_block->get_owner()));
 			
-			/*
-				create gate from subroutine
-				- the hash of the node will be Common::subroutine, and the string will be the name of the block defining this subroutine
-				- we can then use the hash later to detect which gate nodes are subroutines, and get their names by getting the string of the node 
-			*/
-
-			subroutine->print_info();
-
-			return context.new_gate(subroutine->get_owner(), kind, subroutine->get_qubit_defs());
+			return subroutine_gate;
 		}
 
 		case Token::SUBROUTINE_OP_ARGS:

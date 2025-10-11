@@ -199,7 +199,7 @@ void Block::print_info() const {
     std::cout << "=======================================" << std::endl;
     std::cout << "              BLOCK INFO               " << std::endl;
     std::cout << "=======================================" << std::endl;
-    std::cout << "Owner: " << owner << std::endl;
+    std::cout << "Owner: " << owner << " [can apply subroutines: " << (can_apply_subroutines ? "true" : "false") << "]" << std::endl;
 
     std::cout << "Target num qubits " << std::endl;
     std::cout << " EXTERNAL: " << target_num_qubits_external << std::endl;
