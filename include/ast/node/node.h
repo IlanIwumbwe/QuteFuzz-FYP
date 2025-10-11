@@ -135,6 +135,16 @@ class Node {
             return stream;
         }
 
+        void print_ast(){
+            std::cout << content << std::endl;
+
+            for(const std::shared_ptr<Node>& child : children){
+                std::cout << "\t";
+                child->print_ast();
+            }
+
+        }
+
         std::vector<std::shared_ptr<Node>> get_children() const {
             return children;
         }
@@ -197,7 +207,6 @@ class Node {
         std::string content;
         Token::Kind kind;
 
-        // Node_kind kind;
         int id;
 
         std::string indentation_str;

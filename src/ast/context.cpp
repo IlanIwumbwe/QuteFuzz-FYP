@@ -26,30 +26,35 @@ namespace Context {
         }
     }
 
-    bool Context::can_apply_subroutine(const std::shared_ptr<Block> dest, const std::shared_ptr<Block> block){
-        unsigned int max_qubits = dest->num_qubits_of(ALL_SCOPES);
-        unsigned int max_bits = dest->num_bits_of(ALL_SCOPES);
+    /// @brief Check whether current block can apply `block` as a subroutine
+    /// @param dest 
+    /// @param block 
+    /// @return 
+    bool Context::can_apply_as_subroutine(const std::shared_ptr<Block> block){
+        
+        std::shared_ptr<Block> current_block = get_current_block();
 
-        unsigned int num_external_qubits = block->num_qubits_of(EXTERNAL_SCOPE);
-        unsigned int num_external_bits = block->num_qubits_of(EXTERNAL_SCOPE);
+        bool is_built = !block->owned_by(Common::TOP_LEVEL_CIRCUIT_NAME) && !block->owned_by(current_block_owner);
 
-        bool has_enough_qubits = (num_external_qubits >= 1 && num_external_qubits <= max_qubits);
-        bool has_enough_bits = (num_external_bits >= 1 && num_external_qubits <= max_bits);
-        bool is_subroutine = !block->owned_by(Common::TOP_LEVEL_CIRCUIT_NAME) && !block->owned_by(dest->get_owner());
+        if(!is_built){ return false; }
+        
+        unsigned int num_dest_qubits = current_block->num_qubits_of(ALL_SCOPES);
+        unsigned int num_dest_bits = current_block->num_bits_of(ALL_SCOPES);
 
-        return is_subroutine && has_enough_qubits && has_enough_bits;
+        unsigned int num_block_qubits = block->num_qubits_of(EXTERNAL_SCOPE);
+        unsigned int num_block_bits = block->num_bits_of(EXTERNAL_SCOPE);
+
+        bool has_enough_qubits = (num_block_qubits >= 1 && num_block_qubits <= num_dest_qubits);
+        bool has_enough_bits = (num_block_bits >= 1 && num_block_bits <= num_dest_bits);
+
+        return has_enough_qubits && has_enough_bits;
     }
 
     void Context::set_can_apply_subroutines(){
-        std::shared_ptr<Block> current_block = get_current_block();
 
         for(std::shared_ptr<Block> block : blocks){
-            if (can_apply_subroutine(current_block, block))
+            if (can_apply_as_subroutine(block))
             {
-                #ifdef DEBUG
-                INFO("Block " + current_block_owner + " can apply subroutines");
-                #endif
-
                 return;
             }
         }
@@ -58,7 +63,7 @@ namespace Context {
         INFO("Block " + current_block_owner + " can't apply subroutines");
         #endif
 
-        current_block->set_can_apply_subroutines(false);
+        get_current_block()->set_can_apply_subroutines(false);
     }
 
     unsigned int Context::get_max_external_qubits(){
@@ -97,13 +102,12 @@ namespace Context {
         if(blocks.size()){
 
             std::shared_ptr<Block> block = blocks.at(random_int(blocks.size()-1));
-            std::shared_ptr<Block> current_block = get_current_block();
 
             #ifdef DEBUG
             INFO("Getting random block");
             #endif
             
-            while(!can_apply_subroutine(current_block, block)){
+            while(!can_apply_as_subroutine(block)){
                 block = blocks.at(random_int(blocks.size()-1));
             }
 
