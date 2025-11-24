@@ -124,11 +124,17 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 		case Token::QUBIT_DEFS:
 			return context.get_qubit_defs_node(scope);
 
+		case Token::QUBIT_DEFS_DISCARD:
+			return context.get_qubit_defs_discard_node(scope);
+
 		case Token::BIT_DEFS:
 			return context.get_bit_defs_node(scope);
 
 		case Token::QUBIT_DEF:
 			return context.new_qubit_definition(scope);
+
+		case Token::QUBIT_DEF_DISCARD:
+			return context.new_qubit_def_discard(scope);
 
 		case Token::BIT_DEF:
 			return context.new_bit_definition(scope);

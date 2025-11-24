@@ -66,7 +66,23 @@ circuit_def_header = "@guppy.comptime" NEWLINE "def " circuit_name "() -> None:"
 
 # circuit_def_header->subroutine_defs = "@guppy" NEWLINE "def " circuit_name "(" EXTERNAL::qubit_defs "):";
 
-body  = INTERNAL::qubit_defs NEWLINE compound_stmts;
+body  = INTERNAL::qubit_defs NEWLINE compound_stmts INTERNAL::qubit_defs_discard;
+
+
+# Guppy specific qubit discard to prevent qubit leakage
+INTERNAL {
+
+qubit_defs_discard = (qubit_def_discard NEWLINE)*; #These qubit_defs will have the its discard_def = true
+
+qubit_def_discard = singular_qubit_def_discard | register_qubit_def_discard;
+
+singular_qubit_def_discard =  "measure(" qubit_def_name ")";
+
+register_qubit_def_discard =  "measure_array(" qubit_def_name ")";
+
+}
+
+
 
 compound_stmt = qubit_op | if_stmt;
 
@@ -86,8 +102,6 @@ gate_op_args = qubit_list
     ;
 
 subroutine_op = subroutine "(" subroutine_op_args ")";
-
-
 
 singular_qubit = qubit_name;
 
