@@ -12,11 +12,15 @@ struct Generator {
     public:
 
         Generator(Grammar& _grammar): 
-            grammar(std::make_shared<Grammar>(_grammar)),
-            builder(std::make_shared<Ast>())
+            grammar(std::make_shared<Grammar>(_grammar))
         {}
 
-        void setup_builder(const std::string& entry_name, const U8& scope);
+        inline void set_grammar_entry(std::string& _entry_name, U8& _scope){
+            entry_name = _entry_name;
+            scope = _scope;
+        }
+
+        std::shared_ptr<Ast> setup_builder();
 
         friend std::ostream& operator<<(std::ostream& stream, Generator generator){
             stream << "  . " << generator.grammar->get_name() << ": ";
@@ -43,16 +47,18 @@ struct Generator {
 
         Node_constraint get_swarm_testing_gateset();
 
-        void ast_to_program(fs::path output_dir, int build_counter, std::optional<Genome> genome);
+        Node build_equivalent(const Node& ast_root);
 
-        void generate_random_programs(fs::path output_dir, int n_programs);
+        void ast_to_program(fs::path output_dir, std::optional<Genome> genome);
+
+        void ast_to_equivalent_programs(fs::path output_dir, int num_equivalent_programs);        
 
         void run_genetic(fs::path output_dir, int population_size);
 
-
     private:
         std::shared_ptr<Grammar> grammar;
-        std::shared_ptr<Ast> builder;
+        std::string entry_name;
+        U8 scope;
 
         int n_epochs = 100;
         float elitism = 0.2;

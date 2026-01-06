@@ -1,68 +1,5 @@
 #include <generator.h>
 
-/// @brief TODO: make it such that user can call entry point with particular scope
-/// @param entry_name 
-void Generator::setup_builder(const std::string& entry_name, const U8& scope){
-    if(grammar->is_rule(entry_name, scope)){
-        builder->set_entry(grammar->get_rule_pointer_if_exists(entry_name, scope));
-
-    } else if(builder->entry_set()){
-        WARNING("Rule " + entry_name + STR_SCOPE(scope) + " is not defined for grammar " + grammar->get_name() + ". Will use previous entry instead");
-
-    } else {
-        ERROR("Rule " + entry_name + " is not defined for grammar " + grammar->get_name());  
-    }
-}
-
-void Generator::ast_to_program(fs::path output_dir, int build_counter, std::optional<Genome> genome){
-
-    fs::path current_circuit_dir =  output_dir / ("circuit" + std::to_string(build_counter));
-    fs::create_directory(current_circuit_dir);
-
-    builder->set_ast_counter(build_counter);
-
-    std::optional<Node_constraint> gateset;
-
-    if (swarm_testing) {
-        gateset = get_swarm_testing_gateset();
-    } else {
-        gateset = std::nullopt;
-    }
-    Result<Node> maybe_ast_root = builder->build(genome, gateset);
-
-    if(maybe_ast_root.is_ok()){
-        Node ast_root = maybe_ast_root.get_ok();
-
-        fs::path program_path = current_circuit_dir / "circuit.py";
-        std::ofstream stream(program_path.string());
-
-        if (render_dags) {
-            builder->render_dag(current_circuit_dir);
-        }
-
-        int dag_score;
-
-        if(genome.has_value()){
-            dag_score = genome.value().dag_score;
-        } else {
-            dag_score = builder->genome().dag_score;
-        }
-
-        INFO("Dag score: " + std::to_string(dag_score));
-
-        // write program
-        stream << ast_root << std::endl;
-        INFO("Program written to " + YELLOW(program_path.string()));
-
-        builder->render_ast(current_circuit_dir);
-
-        // builder->print_ast();
-        
-    } else {
-        ERROR(maybe_ast_root.get_error());
-    }
-}
-
 /// @brief It's possible that 2 parents that were picked before will be picked again, that's fine
 /// @return 
 std::pair<Genome&, Genome&> Generator::pick_parents(){
@@ -92,63 +29,6 @@ std::pair<Genome&, Genome&> Generator::pick_parents(){
     return { population[first], population[second] };
 }
 
-/// @brief Get defined gates in grammar, filtering out measure gates
-/// @return 
-std::vector<Token_kind> Generator::get_available_gates(){
-    std::vector<Token_kind> out;
-
-    std::shared_ptr<Rule> gate_name = grammar->get_rule_pointer_if_exists("gate_name");
-    
-    if(gate_name == nullptr){
-        ERROR("No gates have been defined in the grammar!");
-
-    } else {
-
-        for (const Branch& b : gate_name->get_branches()) {
-            std::vector<Term> terms = b.get_terms();
-
-            for (const Term& t : terms) {
-                if ((t.get_kind() != MEASURE) && (t.get_kind() != MEASURE_AND_RESET)) {
-                    out.push_back(t.get_kind());
-                }
-            }
-        }
-    }
-
-    return out;
-}
-
-Node_constraint Generator::get_swarm_testing_gateset(){
-    std::vector<Token_kind> gates = get_available_gates();
-
-    size_t n_gates = std::min((size_t)QuteFuzz::SWARM_TESTING_GATESET_SIZE, gates.size());
-
-    std::vector<Token_kind> selected_gates(n_gates);
-    
-    #ifdef DEBUG
-    if (n_gates == gates.size()) {
-        WARNING("Requested swarm testing gateset size is larger than or equal to available gates");
-    }
-    #endif
-
-    std::sample(gates.begin(), gates.end(), selected_gates.begin(), n_gates, seed());
-
-    /*
-        Gateset needs to be unique, there are probably many ways to do this but this is just what I've done
-        Other methods could be like using a set or shuffling and taking the first n elements
-    */
-
-    std::vector<unsigned int> occurances(n_gates, 0);
-
-    // Convert to unordered map for constructor of Node_constraint
-    std::unordered_map<Token_kind, unsigned int> gateset_map;
-    for(size_t i = 0; i < n_gates; ++i){
-        gateset_map[selected_gates[i]] = occurances[i];
-    }
-    
-    return Node_constraint(gateset_map);
-}
-
 Dag Generator::crossover(const Dag& dag1, const Dag& dag2){
     Dag child;
 
@@ -171,7 +51,7 @@ void Generator::run_genetic(fs::path output_dir, int population_size){
     population.clear();
 
     for(int i = 0; i < population_size; i++){
-
+        std::shared_ptr<Ast> builder = setup_builder();
         std::optional<Node_constraint> gateset;
 
         if (swarm_testing) {
@@ -229,15 +109,162 @@ void Generator::run_genetic(fs::path output_dir, int population_size){
         Generate programs from final DAGs
     */
     for(int build_counter = 0; build_counter < (int)population.size(); build_counter++){
-        ast_to_program(output_dir, build_counter, std::make_optional<Genome>(population[build_counter]));
+        ast_to_program(output_dir, std::make_optional<Genome>(population[build_counter]));
     }
 
     INFO(YELLOW("Generated " + std::to_string(population_size) + " program(s)"));
 
 }
 
-void Generator::generate_random_programs(fs::path output_dir, int n_programs){
-    for(int build_counter = 0; build_counter < n_programs; build_counter++){
-        ast_to_program(output_dir, build_counter, std::nullopt);
+std::shared_ptr<Ast> Generator::setup_builder(){
+    std::shared_ptr<Ast> builder = std::make_shared<Ast>();
+    
+    if(grammar->is_rule(entry_name, scope)){
+        builder->set_entry(grammar->get_rule_pointer_if_exists(entry_name, scope));
+
+    } else if(builder->entry_set()){
+        WARNING("Rule " + entry_name + STR_SCOPE(scope) + " is not defined for grammar " + grammar->get_name() + ". Will use previous entry instead");
+
+    } else {
+        ERROR("Rule " + entry_name + " is not defined for grammar " + grammar->get_name());  
     }
+
+    return builder;
+}
+
+void Generator::ast_to_program(fs::path output_dir, std::optional<Genome> genome){
+    fs::create_directory(output_dir);
+
+    std::optional<Node_constraint> gateset;
+
+    if (swarm_testing) {
+        gateset = get_swarm_testing_gateset();
+    } else {
+        gateset = std::nullopt;
+    }
+
+    std::shared_ptr<Ast> builder = setup_builder();
+    Result<Node> maybe_ast_root = builder->build(genome, gateset);
+
+    if(maybe_ast_root.is_ok()){
+        Node ast_root = maybe_ast_root.get_ok();
+
+        fs::path program_path = output_dir / "circuit.py";
+        std::ofstream stream(program_path.string());
+
+        if (render_dags) {
+            builder->render_dag(output_dir);
+        }
+
+        int dag_score;
+
+        if(genome.has_value()){
+            dag_score = genome.value().dag_score;
+        } else {
+            dag_score = builder->genome().dag_score;
+        }
+
+        INFO("Dag score: " + std::to_string(dag_score));
+
+        // write program
+        stream << ast_root << std::endl;
+        INFO("Program written to " + YELLOW(program_path.string()));
+
+        // builder->print_ast();
+        
+    } else {
+        ERROR(maybe_ast_root.get_error());
+    }
+}
+
+Node Generator::build_equivalent(const Node& ast_root){
+    return ast_root;
+}
+
+void Generator::ast_to_equivalent_programs(fs::path output_dir, int num_equivalent_programs){
+    fs::create_directory(output_dir);
+
+    fs::path equi_dir = output_dir / "equi_circuits";
+    fs::create_directory(equi_dir);
+
+    std::shared_ptr<Ast> builder = setup_builder();
+    Result<Node> maybe_ast_root = builder->build(std::nullopt, std::nullopt);
+
+    if(maybe_ast_root.is_ok()){
+        Node ast_root = maybe_ast_root.get_ok();
+
+        fs::path program_path = output_dir / "base_circuit.py";
+        std::ofstream stream(program_path.string());
+
+        stream << ast_root << std::endl;
+
+        for(int i = 1; i < num_equivalent_programs; i++){
+            Node ast_root_p = build_equivalent(ast_root);
+            
+            fs::path program_path = equi_dir / (std::to_string(i) + ".py");
+            std::ofstream stream(program_path.string());
+
+            stream << ast_root_p << std::endl;
+        }
+
+    } else {
+        ERROR(maybe_ast_root.get_error());
+    }
+}
+
+/// @brief Get defined gates in grammar, filtering out measure gates
+/// @return 
+std::vector<Token_kind> Generator::get_available_gates(){
+    std::vector<Token_kind> out;
+
+    std::shared_ptr<Rule> gate_name = grammar->get_rule_pointer_if_exists("gate_name");
+    
+    if(gate_name == nullptr){
+        ERROR("No gates have been defined in the grammar!");
+
+    } else {
+
+        for (const Branch& b : gate_name->get_branches()) {
+            std::vector<Term> terms = b.get_terms();
+
+            for (const Term& t : terms) {
+                if ((t.get_kind() != MEASURE) && (t.get_kind() != MEASURE_AND_RESET)) {
+                    out.push_back(t.get_kind());
+                }
+            }
+        }
+    }
+
+    return out;
+}
+
+Node_constraint Generator::get_swarm_testing_gateset(){
+    std::vector<Token_kind> gates = get_available_gates();
+
+    size_t n_gates = std::min((size_t)QuteFuzz::SWARM_TESTING_GATESET_SIZE, gates.size());
+
+    std::vector<Token_kind> selected_gates(n_gates);
+    
+    #ifdef DEBUG
+    if (n_gates == gates.size()) {
+        WARNING("Requested swarm testing gateset size is larger than or equal to available gates");
+    }
+    #endif
+
+    std::sample(gates.begin(), gates.end(), selected_gates.begin(), n_gates, seed());
+
+    /*
+        Gateset needs to be unique, there are probably many ways to do this but this is just what I've done
+        Other methods could be like using a set or shuffling and taking the first n elements
+    */
+
+    std::vector<unsigned int> occurances(n_gates, 0);
+
+    // Convert to unordered map for constructor of Node_constraint
+    std::unordered_map<Token_kind, unsigned int> gateset_map;
+    for(size_t i = 0; i < n_gates; ++i){
+        gateset_map[selected_gates[i]] = occurances[i];
+    }
+    
+    return Node_constraint(gateset_map);
 }

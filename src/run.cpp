@@ -79,7 +79,7 @@ void Run::set_grammar(){
 
     if(is_grammar(grammar_name)){
         current_generator = generators[grammar_name];
-        current_generator->setup_builder(entry_name, scope);
+        current_generator->set_grammar_entry(entry_name, scope);
 
     } else {
         std::cout << grammar_name << " is not a known grammar!" << std::endl;
@@ -155,17 +155,28 @@ void Run::loop(){
                 run_genetic = !run_genetic;
                 INFO("Genetic generation mode " + FLAG_STATUS(run_genetic));
 
+            } else if (current_command == "mutate"){
+                run_mutate = !run_mutate;
+                INFO("Mutation mode " + FLAG_STATUS(run_mutate));
+
             } else if ((n_programs = safe_stoi(current_command))){
                 remove_all_in_dir(output_dir);
 
                 if(run_genetic){
                     current_generator->run_genetic(output_dir, n_programs.value_or(0));
 
+                } else if (run_mutate){
+                    for(int build_counter = 0; build_counter < n_programs.value_or(0); build_counter++){
+                        fs::path current_circuit_dir = output_dir / ("circuit" + std::to_string(build_counter));
+                        current_generator->ast_to_equivalent_programs(current_circuit_dir, 100);
+                    }
+            
                 } else {
-                    current_generator->generate_random_programs(output_dir, n_programs.value_or(0));
-
+                    for(int build_counter = 0; build_counter < n_programs.value_or(0); build_counter++){
+                        fs::path current_circuit_dir = output_dir / ("circuit" + std::to_string(build_counter));
+                        current_generator->ast_to_program(current_circuit_dir, std::nullopt);
+                    }
                 }
-
             }
 
         } else {

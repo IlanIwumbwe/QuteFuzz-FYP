@@ -27,9 +27,7 @@ class Ast{
 
         std::shared_ptr<Node> get_node(const std::shared_ptr<Node> parent, const Term& term);
 
-        inline void set_ast_counter(const int& counter){context.set_ast_counter(counter);}
-
-        Result<Node> build(const std::optional<Genome>& genome, std::optional<Node_constraint>& swarm_testing_gateset);
+        Result<Node> build(const std::optional<Genome>& genome, const std::optional<Node_constraint>& swarm_testing_gateset);
 
         Genome genome();
 

@@ -22,9 +22,12 @@ enum Reset_level {
 };
 
 struct Context {
+	static int ast_counter;
 
 	public:
-		Context(){}
+		Context(){
+			ast_counter += 1;
+		}
 
 		void reset(Reset_level l);
 
@@ -143,8 +146,6 @@ struct Context {
 			return subroutines_node.has_value() && (subroutines_node.value()->build_state() == NB_BUILD);
 		}
 
-		inline void set_ast_counter(const int& counter){ast_counter = counter;}
-
 		inline std::shared_ptr<Integer> get_circuit_id(){return std::make_shared<Integer>(ast_counter);}
 
 		void set_genome(const std::optional<Genome>& _genome);
@@ -164,7 +165,7 @@ struct Context {
 		Variable dummy_var;
 
 		unsigned int subroutine_counter = 0;
-		unsigned int ast_counter = 0;
+		// unsigned int ast_counter = 0;
 		unsigned int current_port;
 		unsigned int nested_depth;
 	

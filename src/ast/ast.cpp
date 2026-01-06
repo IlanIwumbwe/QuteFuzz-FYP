@@ -25,7 +25,6 @@
 
 std::string Node::indentation_tracker = "";
 
-
 std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Term& term){
 
 	if(parent == nullptr){
@@ -288,7 +287,7 @@ void Ast::write_branch(std::shared_ptr<Node> parent, const Term& term){
 	parent->transition_to_done();
 }
 
-Result<Node> Ast::build(const std::optional<Genome>& genome, std::optional<Node_constraint>& _swarm_testing_gateset){
+Result<Node> Ast::build(const std::optional<Genome>& genome, const std::optional<Node_constraint>& _swarm_testing_gateset){
 	Result<Node> res;
 
 	if(entry == nullptr){

@@ -24,6 +24,8 @@ class Run{
 
         void remove_all_in_dir(const fs::path& dir);
 
+        void generate_random_programs(fs::path output_dir, int n_programs);
+
         void loop();
 
     private:

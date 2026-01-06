@@ -2,6 +2,7 @@
 #include <generator.h>
 #include <params.h>
 
+int Context::ast_counter = 0;
 
 void Context::reset(Reset_level l){
 

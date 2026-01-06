@@ -61,6 +61,7 @@ extern bool verbose;
 extern bool render_dags;
 extern bool run_genetic;
 extern bool swarm_testing;
+extern bool run_mutate;
 
 void lower(std::string& str);
 

@@ -4,6 +4,7 @@
 bool render_dags = false;
 bool run_genetic = false;
 bool swarm_testing = false;
+bool run_mutate = false;
 
 void lower(std::string& str){
     std::transform(str.begin(), str.end(), str.begin(),
