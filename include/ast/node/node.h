@@ -71,7 +71,7 @@ struct Node_constraint {
 
 
 /// @brief A node is a term with pointers to other nodes
-class Node {
+class Node : public std::enable_shared_from_this<Node> {
 
     public:
         static std::string indentation_tracker;
@@ -98,44 +98,9 @@ class Node {
 
         virtual ~Node() = default;
 
-        /// @brief // Adds child to parent node, along with any grammar constraint from parent only if child doesn't have the same constraint already on that Rule
-        /// @param child 
-        /// @param child_constraint 
-        inline void add_child(const std::shared_ptr<Node> child, const std::optional<Node_constraint>& child_grammar_constraint = std::nullopt){
-            
-            // First merge child's grammar constraint with parent's grammar constraint, child priority.
-            if (child_grammar_constraint.has_value() && grammar_added_constraint.has_value()) {
-                for(const auto& [rule, occurances] : grammar_added_constraint->get_constraints()){
-                    child->add_grammar_constraint(rule, occurances);
-                }
-                
-                for(const auto& [rule, occurances] : child_grammar_constraint->get_constraints()){
-                     if(child->grammar_added_constraint.has_value()){
-                         child->grammar_added_constraint->set_occurances_for_rule(rule, occurances);
-                     } else {
-                         child->add_grammar_constraint(rule, occurances);
-                     }
-                }
-            } 
-            //If parent has no grammar constraints, just add child's constraints
-            else if (!grammar_added_constraint.has_value() && child_grammar_constraint.has_value()) { 
-                for(const auto& [rule, occurances] : child_grammar_constraint->get_constraints()){
-                    child->add_grammar_constraint(rule, occurances);
-                }
-            }
+        void add_child(const std::shared_ptr<Node> child, const std::optional<Node_constraint>& child_grammar_constraint = std::nullopt);
 
-            // Finally, merge child's constraints with child's grammar constraints, with grammar constraints
-            // taking precedence if both exist on the same rule
-            if (child->constraint.has_value() && child->grammar_added_constraint.has_value()) {
-                for(const auto& [rule, occurances] : child->grammar_added_constraint->get_constraints()){
-                    child->constraint->set_occurances_for_rule(rule, occurances);
-                }
-            }
-
-            children.push_back(child);
-        }
-
-        void transition_to_done(){
+        inline void transition_to_done(){
             state = NB_DONE;
         }
 
@@ -162,8 +127,30 @@ class Node {
             return kind;
         }
 
+        void set_visited(){
+            visited = true;
+        }
+
+        bool get_visited() const {
+            return visited;
+        }
+
         virtual std::string resolved_name() const {
             return get_content();
+        }
+
+        std::shared_ptr<Node>* find_slot(Token_kind _kind);
+
+        std::shared_ptr<Node> find(Token_kind _kind);
+
+        inline int count_nodes() const {
+            int res = 1;
+
+            for(auto child : children){
+                res += child->count_nodes();
+            }
+
+            return res;
         }
 
         virtual void print(std::ostream& stream) const {
@@ -241,10 +228,6 @@ class Node {
             }
         }
 
-        #ifdef DEBUG
-        std::string get_debug_constraint_string() const;
-        #endif
-
         virtual unsigned int get_n_ports() const {return 1;}
 
         int get_next_child_target();
@@ -264,6 +247,7 @@ class Node {
 
         std::vector<int> child_partition;
         unsigned int partition_counter = 0;
+        bool visited = false;
     
     private:
         std::optional<Node_constraint> constraint;

@@ -6,6 +6,7 @@
 #include <genome.h>
 #include <dag.h>
 #include <term.h>
+#include <mutate.h>
 
 struct Generator {
 
@@ -47,11 +48,11 @@ struct Generator {
 
         Node_constraint get_swarm_testing_gateset();
 
-        Node build_equivalent(const Node& ast_root);
+        Node build_equivalent(Node ast_root);
 
         void ast_to_program(fs::path output_dir, std::optional<Genome> genome);
 
-        void ast_to_equivalent_programs(fs::path output_dir, int num_equivalent_programs);        
+        void ast_to_equivalent_programs(fs::path output_dir);        
 
         void run_genetic(fs::path output_dir, int population_size);
 
@@ -64,6 +65,9 @@ struct Generator {
         float elitism = 0.2;
 
         std::vector<Genome> population;
+        std::vector<std::shared_ptr<Mutation_rule>> mut_rules = {
+            std::make_shared<X_HSSH>()
+        };
 
 };
 

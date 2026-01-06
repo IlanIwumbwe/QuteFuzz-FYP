@@ -168,7 +168,7 @@ void Run::loop(){
                 } else if (run_mutate){
                     for(int build_counter = 0; build_counter < n_programs.value_or(0); build_counter++){
                         fs::path current_circuit_dir = output_dir / ("circuit" + std::to_string(build_counter));
-                        current_generator->ast_to_equivalent_programs(current_circuit_dir, 100);
+                        current_generator->ast_to_equivalent_programs(current_circuit_dir);
                     }
             
                 } else {

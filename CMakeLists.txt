@@ -12,6 +12,7 @@ file(GLOB_RECURSE SRCS "src/*.cpp")
 add_executable(fuzzer ${SRCS})
 
 target_include_directories(fuzzer PRIVATE
+    ${CMAKE_SOURCE_DIR}/include/generator
     ${CMAKE_SOURCE_DIR}/include/ast
     ${CMAKE_SOURCE_DIR}/include/ast/node
     ${CMAKE_SOURCE_DIR}/include/grammar

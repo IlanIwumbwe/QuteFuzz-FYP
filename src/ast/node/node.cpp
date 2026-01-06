@@ -2,27 +2,70 @@
 
 int Node::node_counter = 0;
 
-#ifdef DEBUG
-std::string Node::get_debug_constraint_string() const {
-    if(constraint.has_value()){
-        std::string debug_string;
+std::shared_ptr<Node>* Node::find_slot(Token_kind _kind){
 
-        for(const auto& [rule, n_occurances] : constraint.value().get_constraints()){
-            debug_string += std::to_string(rule) + " with occurances: " + std::to_string(n_occurances) + " ";
-            
-            if(n_occurances > (unsigned int)WILDCARD_MAX){
-                debug_string += RED("(Cannot be satisfied! Max = " + std::to_string(WILDCARD_MAX) + ")");
-            }
+    for(std::shared_ptr<Node>& child : children){
+        if((child->get_kind() == _kind) && (child->get_visited() == false)){
+            child->set_visited();
+            return &child;
         }
 
-        return debug_string;
-    
-    } else {
-        return "no constraint";
-    
+        std::shared_ptr<Node>* maybe_find = child->find_slot(_kind);
+
+        if(maybe_find != nullptr) return maybe_find;
     }
+
+    visited = true;
+    return nullptr;
 }
-#endif
+
+std::shared_ptr<Node> Node::find(Token_kind _kind){
+    if((kind == _kind) && (visited == false)){
+        visited = true;
+        return shared_from_this();
+    }
+
+    std::shared_ptr<Node>* maybe_find = find_slot(kind);
+
+    return (maybe_find == nullptr) ? nullptr : *maybe_find;
+}
+
+/// @brief // Adds child to parent node, along with any grammar constraint from parent only if child doesn't have the same constraint already on that Rule
+/// @param child 
+/// @param child_constraint 
+void Node::add_child(const std::shared_ptr<Node> child, const std::optional<Node_constraint>& child_grammar_constraint){
+    
+    // First merge child's grammar constraint with parent's grammar constraint, child priority.
+    if (child_grammar_constraint.has_value() && grammar_added_constraint.has_value()) {
+        for(const auto& [rule, occurances] : grammar_added_constraint->get_constraints()){
+            child->add_grammar_constraint(rule, occurances);
+        }
+        
+        for(const auto& [rule, occurances] : child_grammar_constraint->get_constraints()){
+                if(child->grammar_added_constraint.has_value()){
+                    child->grammar_added_constraint->set_occurances_for_rule(rule, occurances);
+                } else {
+                    child->add_grammar_constraint(rule, occurances);
+                }
+        }
+    } 
+    //If parent has no grammar constraints, just add child's constraints
+    else if (!grammar_added_constraint.has_value() && child_grammar_constraint.has_value()) { 
+        for(const auto& [rule, occurances] : child_grammar_constraint->get_constraints()){
+            child->add_grammar_constraint(rule, occurances);
+        }
+    }
+
+    // Finally, merge child's constraints with child's grammar constraints, with grammar constraints
+    // taking precedence if both exist on the same rule
+    if (child->constraint.has_value() && child->grammar_added_constraint.has_value()) {
+        for(const auto& [rule, occurances] : child->grammar_added_constraint->get_constraints()){
+            child->constraint->set_occurances_for_rule(rule, occurances);
+        }
+    }
+
+    children.push_back(child);
+}
 
 void Node::print_ast(std::string indent) const {
     std::cout << content << std::endl;

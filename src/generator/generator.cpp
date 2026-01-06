@@ -170,18 +170,32 @@ void Generator::ast_to_program(fs::path output_dir, std::optional<Genome> genome
         stream << ast_root << std::endl;
         INFO("Program written to " + YELLOW(program_path.string()));
 
-        // builder->print_ast();
+        builder->print_ast();
         
     } else {
         ERROR(maybe_ast_root.get_error());
     }
 }
 
-Node Generator::build_equivalent(const Node& ast_root){
+Node Generator::build_equivalent(Node ast_root){
+
+    std::shared_ptr<Node>* maybe_compound_stmts = ast_root.find_slot(COMPOUND_STMTS);
+
+    while(maybe_compound_stmts != nullptr){        
+        for(auto rule : mut_rules){
+            if(rule->match(*maybe_compound_stmts)){
+                std::cout << **maybe_compound_stmts << std::endl;
+                rule->apply(*maybe_compound_stmts);
+            }
+        }
+
+        maybe_compound_stmts = ast_root.find_slot(COMPOUND_STMTS);
+    }
+
     return ast_root;
 }
 
-void Generator::ast_to_equivalent_programs(fs::path output_dir, int num_equivalent_programs){
+void Generator::ast_to_equivalent_programs(fs::path output_dir){
     fs::create_directory(output_dir);
 
     fs::path equi_dir = output_dir / "equi_circuits";
@@ -198,14 +212,12 @@ void Generator::ast_to_equivalent_programs(fs::path output_dir, int num_equivale
 
         stream << ast_root << std::endl;
 
-        for(int i = 1; i < num_equivalent_programs; i++){
-            Node ast_root_p = build_equivalent(ast_root);
-            
-            fs::path program_path = equi_dir / (std::to_string(i) + ".py");
-            std::ofstream stream(program_path.string());
+        Node ast_root_p = build_equivalent(ast_root);
+        
+        program_path = equi_dir / (std::to_string(0) + ".py");
+        std::ofstream equi_stream(program_path.string());
 
-            stream << ast_root_p << std::endl;
-        }
+        equi_stream << ast_root_p << std::endl;
 
     } else {
         ERROR(maybe_ast_root.get_error());
