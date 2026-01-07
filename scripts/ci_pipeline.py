@@ -13,10 +13,10 @@ from typing import List, Optional
 BUILD_DIR = Path("build")
 OUTPUT_DIR = Path("outputs")
 NIGHTLY_DIR = Path("nightly_results")
-GRAMMARS = ["pytket", "qiskit", "cirq"]
+GRAMMARS = ["pytket", "qiskit"]
 ENTRY_POINT = "program"
 NUM_TESTS = 10  # Default for CI
-NUM_NIGHTLY_TESTS = 1200  # More tests for nightly runs
+NUM_NIGHTLY_TESTS = 1800  # More tests for nightly runs
 
 # Thresholds for identifying interesting circuits
 KS_THRESHOLD = 0.05  # KS p-value below this is interesting
