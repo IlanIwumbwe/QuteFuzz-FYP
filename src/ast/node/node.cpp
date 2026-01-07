@@ -2,30 +2,28 @@
 
 int Node::node_counter = 0;
 
-std::shared_ptr<Node>* Node::find_slot(Token_kind _kind){
-
+std::shared_ptr<Node>* Node::find_slot(Token_kind node_kind, std::vector<std::shared_ptr<Node>*>& visited_slots){
+    std::shared_ptr<Node>* maybe_find;
+    
     for(std::shared_ptr<Node>& child : children){
-        if((child->get_kind() == _kind) && (child->get_visited() == false)){
-            child->set_visited();
+        if((child->get_kind() == node_kind) && !visited(visited_slots, &child)){
             return &child;
         }
 
-        std::shared_ptr<Node>* maybe_find = child->find_slot(_kind);
-
+        maybe_find = child->find_slot(node_kind, visited_slots);
         if(maybe_find != nullptr) return maybe_find;
     }
 
-    visited = true;
     return nullptr;
 }
 
-std::shared_ptr<Node> Node::find(Token_kind _kind){
-    if((kind == _kind) && (visited == false)){
-        visited = true;
+std::shared_ptr<Node> Node::find(Token_kind node_kind){
+    if(kind == node_kind){
         return shared_from_this();
     }
 
-    std::shared_ptr<Node>* maybe_find = find_slot(kind);
+    std::vector<std::shared_ptr<Node>*> visited_slots = {};
+    std::shared_ptr<Node>* maybe_find = find_slot(node_kind, visited_slots);
 
     return (maybe_find == nullptr) ? nullptr : *maybe_find;
 }

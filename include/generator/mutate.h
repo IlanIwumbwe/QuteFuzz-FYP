@@ -1,7 +1,7 @@
 #ifndef MUTATE_H
 #define MUTATE_H
 
-#include <compound_stmts.h>
+#include <node.h>
 #include <variable.h>
 
 class Mutation_rule {
@@ -12,7 +12,8 @@ class Mutation_rule {
 
         virtual void apply(std::shared_ptr<Node>& stmts) = 0;
 
-    private:
+    protected:
+        std::vector<std::shared_ptr<Node>*> slots;
 };
 
 class X_HSSH : public Mutation_rule {
@@ -21,16 +22,11 @@ class X_HSSH : public Mutation_rule {
             Mutation_rule()
         {}
 
-        bool match(const std::shared_ptr<Node> stmts){
-            return stmts->find(X) != nullptr;
-        }
+        bool match(const std::shared_ptr<Node> compound_stmts);
 
-        void apply(std::shared_ptr<Node>& stmts){
-            stmts->add_child(std::make_shared<Variable>("hello child!"));
-        }
+        void apply(std::shared_ptr<Node>& compound_stmts);
 
     private:
-
 };
 
 #endif

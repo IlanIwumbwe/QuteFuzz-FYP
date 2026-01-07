@@ -69,7 +69,6 @@ struct Node_constraint {
 
 };
 
-
 /// @brief A node is a term with pointers to other nodes
 class Node : public std::enable_shared_from_this<Node> {
 
@@ -127,21 +126,22 @@ class Node : public std::enable_shared_from_this<Node> {
             return kind;
         }
 
-        void set_visited(){
-            visited = true;
-        }
-
-        bool get_visited() const {
-            return visited;
-        }
-
         virtual std::string resolved_name() const {
             return get_content();
         }
 
-        std::shared_ptr<Node>* find_slot(Token_kind _kind);
+        inline bool visited(std::vector<std::shared_ptr<Node>*>& visited_slots, std::shared_ptr<Node>* slot){
+            for(auto vslot : visited_slots){
+                if(vslot == slot) return true;
+            }
 
-        std::shared_ptr<Node> find(Token_kind _kind);
+            visited_slots.push_back(slot);
+            return false;
+        }
+
+        std::shared_ptr<Node>* find_slot(Token_kind node_kind, std::vector<std::shared_ptr<Node>*>& visited_slots);
+
+        std::shared_ptr<Node> find(Token_kind node_kind);
 
         inline int count_nodes() const {
             int res = 1;
@@ -247,7 +247,6 @@ class Node : public std::enable_shared_from_this<Node> {
 
         std::vector<int> child_partition;
         unsigned int partition_counter = 0;
-        bool visited = false;
     
     private:
         std::optional<Node_constraint> constraint;
