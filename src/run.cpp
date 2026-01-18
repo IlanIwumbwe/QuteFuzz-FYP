@@ -3,7 +3,7 @@
 #include <lex.h>
 #include <params.h>
 
-const fs::path Run::OUTPUT_DIR = fs::path(QuteFuzz::OUTPUTS_FOLDER_NAME);
+const fs::path Run::OUTPUT_DIR = fs::path(__FILE__).parent_path().parent_path() / fs::path(QuteFuzz::OUTPUTS_FOLDER_NAME);
 
 Run::Run(const std::string& _grammars_dir) : grammars_dir(_grammars_dir) {
     std::vector<Token> meta_grammar_tokens;

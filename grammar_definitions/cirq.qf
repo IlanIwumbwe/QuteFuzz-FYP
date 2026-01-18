@@ -43,7 +43,7 @@ EXTERNAL {
 imports =
     "import cirq" NEWLINE
     swarm_testing_imports NEWLINE
-    "from diff_testing.lib import cirqTesting"
+    # "from diff_testing.lib import cirqTesting"
     ;
 
 

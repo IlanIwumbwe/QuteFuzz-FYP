@@ -16,10 +16,9 @@ Results:
 
 import argparse
 import os
-import pathlib
-import shutil
 from collections import Counter
 from itertools import zip_longest
+from pathlib import Path
 from typing import Any, Dict, List
 
 import matplotlib.pyplot as plt
@@ -32,17 +31,18 @@ from scipy.stats import ks_2samp
 
 class Base:
     # Define the plots directory as a class variable
-    OUTPUT_DIR = (pathlib.Path(__file__).parent.parent / "outputs").resolve()
+    OUTPUT_DIR = (Path(__file__).parent.parent / "outputs").resolve()
     # Define timeout seconds for any compilation
     TIMEOUT_SECONDS = 30
 
-    def __init__(self) -> None:
+    def __init__(self, qss_name) -> None:
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument(
             "--plot", action="store_true", help="Plot results after running circuit"
         )
         self.args = self.parser.parse_args()
         self.plot: bool = self.args.plot
+        self.qss_name = qss_name
 
     def qnexus_login(self) -> None:
         """
@@ -118,34 +118,16 @@ class Base:
     ) -> float:
         return float(np.round(abs(np.vdot(sv1, sv2)), precision))
 
-    def save_interesting_circuit(self, circuit_number: int, interesting_dir: pathlib.Path) -> None:
-        """
-        Saves an interesting circuit file to the specified directory
-        """
-        interesting_dir.mkdir(parents=True, exist_ok=True)
-
-        circuit_source_path = self.OUTPUT_DIR / f"circuit{circuit_number}" / "circuit.py"
-        circuit_dest_path = interesting_dir / f"circuit{circuit_number}.py"
-
-        if circuit_source_path.exists():
-            try:
-                shutil.copy2(circuit_source_path, circuit_dest_path)
-                print(f"Interesting circuit saved to: {circuit_dest_path}")
-            except Exception as e:
-                print(f"Error copying circuit file: {e}")
-        else:
-            print(f"Warning: Circuit file not found at {circuit_source_path}")
-
     def plot_histogram(
         self, res: Counter[int], title: str, compilation_level: int, circuit_number: int = 0
     ) -> None:
-        plots_dir = self.OUTPUT_DIR / f"circuit{circuit_number}"
+        plots_dir = self.OUTPUT_DIR / self.qss_name / f"circuit{circuit_number}"
         if not plots_dir.exists():
             plots_dir.mkdir(parents=True, exist_ok=True)
 
         plots_path = (
             plots_dir
-            / f"output{circuit_number}_{title}{compilation_level if compilation_level else 'uncompiled'}.png"
+            / f"plot_{compilation_level}.png"
         )
 
         # Plot the histogram

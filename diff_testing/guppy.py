@@ -22,7 +22,7 @@ enable_experimental_features()
 
 class guppyTesting(Base):
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__("guppy")
 
     def ks_diff_test(self, circuit: Any, circuit_number: int) -> None:
         """

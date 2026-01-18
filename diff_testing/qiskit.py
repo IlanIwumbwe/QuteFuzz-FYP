@@ -1,11 +1,12 @@
-from .lib import Base
 from qiskit import QuantumCircuit, transpile
 from qiskit_aer import AerSimulator
+
+from .lib import Base
 
 
 class qiskitTesting(Base):
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__("qiskit")
 
     def ks_diff_test(self, circuit: QuantumCircuit, circuit_number: int) -> float:
         """
@@ -20,9 +21,18 @@ class qiskitTesting(Base):
             backend.run(uncompiled_circ, shots=10000).result().get_counts()
         )
 
+        if self.plot:
+            self.plot_histogram(
+                res=counts1,
+                title="Uncompiled Circuit Results",
+                compilation_level=0,
+                circuit_number=circuit_number,
+            )
+
         # Compile circuit at 3 different optimisation levels
         for i in range(3):
-            compiled_circ = transpile(circuit, backend, optimization_level=i + 1)
+            compiled_circ = transpile(circuit, backend, optimization_level=i+1)
+
             counts2 = self.preprocess_counts(
                 backend.run(compiled_circ, shots=10000).result().get_counts()
             )
@@ -31,15 +41,12 @@ class qiskitTesting(Base):
             ks_value = self.ks_test(counts1, counts2, 10000)
             print(f"Optimisation level {i + 1} ks-test p-value: {ks_value}")
 
-            if ks_value < 0.05:
-                print(f"Interesting circuit found: {circuit_number}")
-                self.save_interesting_circuit(
-                    circuit_number, self.OUTPUT_DIR / "interesting_circuits"
-                )
-
-            # plot results
             if self.plot:
-                self.plot_histogram(counts1, "Uncompiled Circuit Results", 0, circuit_number)
-                self.plot_histogram(counts2, "Compiled Circuit Results", i + 1, circuit_number)
+                self.plot_histogram(
+                    res=counts2,
+                    title="Compiled Circuit Results",
+                    compilation_level=i+1,
+                    circuit_number=circuit_number,
+                )
 
         return float(ks_value)

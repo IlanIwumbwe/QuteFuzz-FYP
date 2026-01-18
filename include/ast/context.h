@@ -165,7 +165,6 @@ struct Context {
 		Variable dummy_var;
 
 		unsigned int subroutine_counter = 0;
-		// unsigned int ast_counter = 0;
 		unsigned int current_port;
 		unsigned int nested_depth;
 	

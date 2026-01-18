@@ -17,7 +17,7 @@ from .lib import Base
 
 class pytketTesting(Base):
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__("pytket")
 
     def ks_diff_test(self, circuit: Circuit, circuit_number: int) -> None:
         """
