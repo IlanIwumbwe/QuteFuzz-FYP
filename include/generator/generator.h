@@ -40,21 +40,13 @@ struct Generator {
 
         inline std::shared_ptr<Grammar> get_grammar() const { return grammar; }
 
-        Dag crossover(const Dag& dag1, const Dag& dag2);
-
-        std::pair<Genome&, Genome&> pick_parents();
-
         std::vector<Token_kind> get_available_gates();
 
         Node_constraint get_swarm_testing_gateset();
 
         Node build_equivalent(Node ast_root);
 
-        void ast_to_program(fs::path output_dir, std::optional<Genome> genome);
-
-        void ast_to_equivalent_programs(fs::path output_dir);        
-
-        void run_genetic(fs::path output_dir, int population_size);
+        void ast_to_program(fs::path output_dir, const Control& control, unsigned int seed);
 
     private:
         std::shared_ptr<Grammar> grammar;

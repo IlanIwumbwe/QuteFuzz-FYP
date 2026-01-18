@@ -123,10 +123,10 @@ void Node::make_partition(int target, int n_children){
         std::vector<int> cuts;
 
         for(int i = 0; i < n_children-1; i++){
-            int val = random_int(target-1, 1);
+            int val = random_uint(target-1, 1);
 
             while(std::find(cuts.begin(), cuts.end(), val) != cuts.end()){
-                val = random_int(target-1, 1);
+                val = random_uint(target-1, 1);
             }
 
             cuts.push_back(val);
@@ -167,7 +167,7 @@ void Node::make_control_flow_partition(int target, int n_children){
         add_constraint(ELSE_STMT, 0);
         add_constraint(ELIF_STMT, 0);
 
-    } else if (random_int(1)) {
+    } else if (random_uint(1)) {
         add_constraint(ELSE_STMT, 1);
         
     } else {

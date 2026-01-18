@@ -12,10 +12,10 @@ std::shared_ptr<Qubit> Circuit::get_random_qubit(const U8& scope){
     }
     
     if(total_qubits && valid_qubit_exists){
-        std::shared_ptr<Qubit> qubit = qubits.at(random_int(total_qubits - 1));
+        std::shared_ptr<Qubit> qubit = qubits.at(random_uint(total_qubits - 1));
 
         while(qubit->is_used() || !scope_matches(qubit->get_scope(), scope)){
-            qubit = qubits.at(random_int(total_qubits - 1));
+            qubit = qubits.at(random_uint(total_qubits - 1));
         }
 
         qubit->set_used();
@@ -41,10 +41,10 @@ std::shared_ptr<Bit> Circuit::get_random_bit(const U8& scope){
     
     if(total_bits && valid_bit_exists){
 
-        std::shared_ptr<Bit> bit = bits.at(random_int(total_bits - 1));
+        std::shared_ptr<Bit> bit = bits.at(random_uint(total_bits - 1));
 
         while(bit->is_used() || !scope_matches(bit->get_scope(), scope)){
-            bit = bits.at(random_int(total_bits - 1));
+            bit = bits.at(random_uint(total_bits - 1));
         }
 
         bit->set_used();
@@ -110,7 +110,7 @@ unsigned int Circuit::make_register_resource_definition(unsigned int max_size, U
 
     unsigned int size;
 
-    if(max_size > 1) size = random_int(max_size, 1);
+    if(max_size > 1) size = random_uint(max_size, 1);
     else size = max_size;
 
     if (rk == RK_QUBIT) {
@@ -198,7 +198,7 @@ unsigned int Circuit::make_resource_definitions(U8& scope, Resource_kind rk, boo
             /*
                 Use singular qubit or qubit register
             */
-            if(random_int(1)){
+            if(random_uint(1)){
                 target_num_resources -= make_singular_resource_definition(scope, rk, total_num_definitions);
 
             } else {

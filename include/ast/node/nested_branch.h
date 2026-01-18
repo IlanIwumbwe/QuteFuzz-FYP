@@ -20,7 +20,7 @@ class Nested_branch : public Node {
                 /*
                     control flow branch with just compound stmts, or control flow branch with compound stmts and control flow branch
                 */
-                unsigned int n_children = (target_num_qubit_ops == 1) || random_int(1) ? 1 : 2;
+                unsigned int n_children = (target_num_qubit_ops == 1) || random_uint(1) ? 1 : 2;
                 
                 make_control_flow_partition(target_num_qubit_ops, n_children);
             

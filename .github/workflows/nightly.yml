@@ -41,7 +41,7 @@ jobs:
           # Use workflow inputs if provided, otherwise defaults
           GRAMMARS="${{ github.event.inputs.grammars || 'pytket qiskit cirq' }}"
           
-          uv run scripts/ci_pipeline.py \
+          uv run scripts/run.py \
             --nightly \
             --grammars $GRAMMARS
 

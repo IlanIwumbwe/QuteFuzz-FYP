@@ -111,10 +111,10 @@ std::shared_ptr<Circuit> Context::get_random_circuit(){
     
     if(circuits.size() && valid_circuit_exists){
 
-        std::shared_ptr<Circuit> circuit = circuits.at(random_int(circuits.size()-1));
+        std::shared_ptr<Circuit> circuit = circuits.at(random_uint(circuits.size()-1));
         
         while(!can_apply_as_subroutine(circuit)){
-            circuit = circuits.at(random_int(circuits.size()-1));
+            circuit = circuits.at(random_uint(circuits.size()-1));
         }
 
         return circuit;
@@ -360,7 +360,7 @@ std::shared_ptr<Compound_stmts> Context::get_compound_stmts(std::shared_ptr<Node
 }
 
 std::shared_ptr<Subroutine_defs> Context::new_subroutines_node(){
-    unsigned int n_circuits = random_int(QuteFuzz::MAX_SUBROUTINES);
+    unsigned int n_circuits = random_uint(QuteFuzz::MAX_SUBROUTINES);
 
     if(genome.has_value()){
         n_circuits = genome.value().dag.n_subroutines();

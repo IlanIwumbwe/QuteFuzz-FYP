@@ -244,7 +244,7 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 			std::shared_ptr<Circuit> current_circuit = context.get_current_circuit();
 
 			unsigned int n_qubits = std::min((unsigned int)WILDCARD_MAX, (unsigned int)current_circuit->num_qubits_of(ALL_SCOPES));
-			unsigned int random_barrier_width = random_int(n_qubits, 1);
+			unsigned int random_barrier_width = random_uint(n_qubits, 1);
 
 			return context.new_gate(str, kind, random_barrier_width, 0, 0);
 		}
@@ -312,7 +312,7 @@ Result<Node> Ast::build(const std::optional<Genome>& genome, const std::optional
 			dag = std::make_shared<Dag>(main_circuit_circuit);
 		}
 
-		context.print_circuit_info();
+		// context.print_circuit_info();
 
 		res.set_ok(*root);
 	}

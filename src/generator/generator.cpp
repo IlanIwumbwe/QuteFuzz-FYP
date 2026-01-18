@@ -1,121 +1,6 @@
 #include <generator.h>
 #include <ast_utils.h>
 
-/// @brief It's possible that 2 parents that were picked before will be picked again, that's fine
-/// @return 
-std::pair<Genome&, Genome&> Generator::pick_parents(){
-
-    std::vector<size_t> indices(population.size());
-    std::iota(indices.begin(), indices.end(), 0);
-
-    auto weighted_pick = [&](){
-        std::vector<double> weights;
-
-        for(size_t& i : indices){
-            weights.push_back(static_cast<double>(population[i].dag_score));
-        }
-
-        std::discrete_distribution<> dist(weights.begin(), weights.end());
-        return indices[dist(seed())];
-    };
-
-    size_t first, second;
-    
-    first = weighted_pick();
-
-    indices.erase(std::remove(indices.begin(), indices.end(), first), indices.end());
-
-    second = weighted_pick();
-    
-    return { population[first], population[second] };
-}
-
-Dag Generator::crossover(const Dag& dag1, const Dag& dag2){
-    Dag child;
-
-    UNUSED(dag1);
-    UNUSED(dag2);
-
-    return child;
-}
-
-/// @brief Use genetic algorithm to maximize DAG score, producing final set of circuits that maximise this score
-/// @param output_dir 
-/// @param population_size 
-void Generator::run_genetic(fs::path output_dir, int population_size){
-
-    if(!population_size) return;
-
-    /*
-        Fill initial DAG population
-    */
-    population.clear();
-
-    for(int i = 0; i < population_size; i++){
-        std::shared_ptr<Ast> builder = setup_builder();
-        std::optional<Node_constraint> gateset;
-
-        if (swarm_testing) {
-            gateset = get_swarm_testing_gateset();
-        } else {
-            gateset = std::nullopt;
-        }
-        Result<Node> maybe_root = builder->build(std::nullopt, gateset);
-
-        if(maybe_root.is_ok()){
-            population.push_back(builder->genome());
-        }
-    }
-
-    INFO(YELLOW("Initial set of " + std::to_string(population_size) + " dag(s) generated"));
-
-    /*
-        Run genetic algorithm
-    */
-    for(int epoch = 0; epoch < n_epochs; epoch++){
-
-        INFO("Epoch " + std::to_string(epoch));
-
-        // sort population by descending order of dag score
-        std::sort(population.begin(), population.end(), [](Genome& a, Genome& b) {
-            return a.dag_score > b.dag_score;
-        });
-
-        /*
-            Prepare for new epoch
-        */
-        std::vector<Genome> new_pop;
-
-        for(int j = 0; j < population_size; j++){
-
-            // top performers go to next epoch as is, already in population in correct order due to sort 
-            if(j > elitism * population_size){
-                std::pair<Genome&, Genome&> parents = pick_parents();
-
-                Genome child{.dag = std::move(crossover(parents.first.dag, parents.second.dag)), .dag_score = 0};
-                child.dag_score = child.dag.score();
-
-                new_pop.push_back(child);
-            } else {
-                new_pop.push_back(population[j]);
-            }
-        }
-
-        population = std::move(new_pop);
-    }
-
-    INFO(YELLOW("Run genetic algorithm for " + std::to_string(n_epochs) + " epochs"));
-
-    /*
-        Generate programs from final DAGs
-    */
-    for(int build_counter = 0; build_counter < (int)population.size(); build_counter++){
-        ast_to_program(output_dir, std::make_optional<Genome>(population[build_counter]));
-    }
-
-    INFO(YELLOW("Generated " + std::to_string(population_size) + " program(s)"));
-
-}
 
 std::shared_ptr<Ast> Generator::setup_builder(){
     std::shared_ptr<Ast> builder = std::make_shared<Ast>();
@@ -133,52 +18,6 @@ std::shared_ptr<Ast> Generator::setup_builder(){
     return builder;
 }
 
-void Generator::ast_to_program(fs::path output_dir, std::optional<Genome> genome){
-    fs::create_directory(output_dir);
-
-    std::optional<Node_constraint> gateset;
-
-    if (swarm_testing) {
-        gateset = get_swarm_testing_gateset();
-    } else {
-        gateset = std::nullopt;
-    }
-
-    std::shared_ptr<Ast> builder = setup_builder();
-    Result<Node> maybe_ast_root = builder->build(genome, gateset);
-
-    if(maybe_ast_root.is_ok()){
-        Node ast_root = maybe_ast_root.get_ok();
-
-        fs::path program_path = output_dir / "circuit.py";
-        std::ofstream stream(program_path.string());
-
-        if (render_dags) {
-            builder->render_dag(output_dir);
-            builder->render_ast(output_dir);
-        }
-
-        int dag_score;
-
-        if(genome.has_value()){
-            dag_score = genome.value().dag_score;
-        } else {
-            dag_score = builder->genome().dag_score;
-        }
-
-        INFO("Dag score: " + std::to_string(dag_score));
-
-        // write program
-        stream << ast_root << std::endl;
-        INFO("Program written to " + YELLOW(program_path.string()));
-
-        // builder->print_ast();
-
-    } else {
-        ERROR(maybe_ast_root.get_error());
-    }
-}
-
 Node Generator::build_equivalent(Node ast_root){
     // for each COMPOUND_STMTS node, apply mutation rules
     for(auto& compound_stmts : Node_gen(ast_root, COMPOUND_STMTS)){
@@ -190,29 +29,42 @@ Node Generator::build_equivalent(Node ast_root){
     return ast_root;
 }
 
-void Generator::ast_to_equivalent_programs(fs::path output_dir){
-    fs::create_directory(output_dir);
+void Generator::ast_to_program(fs::path output_dir, const Control& control, unsigned int seed){
+    rng().seed(seed);
 
-    fs::path equi_dir = output_dir / "equi_circuits";
-    fs::create_directory(equi_dir);
+    std::ofstream stream;
+    stream = get_stream(output_dir);
+
+    std::optional<Node_constraint> gateset;
+
+    if (control.swarm_testing) {
+        gateset = get_swarm_testing_gateset();
+    } else {
+        gateset = std::nullopt;
+    }
 
     std::shared_ptr<Ast> builder = setup_builder();
-    Result<Node> maybe_ast_root = builder->build(std::nullopt, std::nullopt);
+    Result<Node> maybe_ast_root = builder->build(std::nullopt, gateset);
 
     if(maybe_ast_root.is_ok()){
         Node ast_root = maybe_ast_root.get_ok();
 
-        fs::path program_path = output_dir / "base_circuit.py";
-        std::ofstream stream(program_path.string());
-
         stream << ast_root << std::endl;
-
-        Node ast_root_p = build_equivalent(ast_root);
+        stream.close();
         
-        program_path = equi_dir / (std::to_string(0) + ".py");
-        std::ofstream equi_stream(program_path.string());
+        if(control.run_mutate){
+            fs::path equi_dir = output_dir / "equi_circuits";
 
-        equi_stream << ast_root_p << std::endl;
+            stream = get_stream(equi_dir, "equi_circuit0.py");
+            
+            Node ast_root_p = build_equivalent(ast_root);
+            stream << ast_root_p << std::endl;
+            stream.close();
+        }
+
+        if (control.render_dags) {
+            builder->render_dag(output_dir);
+        }
 
     } else {
         ERROR(maybe_ast_root.get_error());
@@ -258,7 +110,7 @@ Node_constraint Generator::get_swarm_testing_gateset(){
     }
     #endif
 
-    std::sample(gates.begin(), gates.end(), selected_gates.begin(), n_gates, seed());
+    std::sample(gates.begin(), gates.end(), selected_gates.begin(), n_gates, rng());
 
     /*
         Gateset needs to be unique, there are probably many ways to do this but this is just what I've done

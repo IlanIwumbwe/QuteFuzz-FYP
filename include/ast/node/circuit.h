@@ -55,10 +55,10 @@ class Circuit : public Node {
         Circuit(std::string owner_name) :
             Node("circuit", CIRCUIT),
             owner(owner_name), 
-            target_num_qubits_external(random_int(QuteFuzz::MAX_QUBITS, QuteFuzz::MIN_QUBITS)),
-            target_num_qubits_internal(random_int(QuteFuzz::MAX_QUBITS, QuteFuzz::MIN_QUBITS)),
-            target_num_bits_external(random_int(QuteFuzz::MAX_BITS, QuteFuzz::MIN_BITS)),
-            target_num_bits_internal(random_int(QuteFuzz::MAX_BITS, QuteFuzz::MIN_BITS)) 
+            target_num_qubits_external(random_uint(QuteFuzz::MAX_QUBITS, QuteFuzz::MIN_QUBITS)),
+            target_num_qubits_internal(random_uint(QuteFuzz::MAX_QUBITS, QuteFuzz::MIN_QUBITS)),
+            target_num_bits_external(random_uint(QuteFuzz::MAX_BITS, QuteFuzz::MIN_BITS)),
+            target_num_bits_internal(random_uint(QuteFuzz::MAX_BITS, QuteFuzz::MIN_BITS)) 
         {}
 
         /// @brief Generating a circuit with a specific number of external qubits (generating from DAG)
@@ -66,9 +66,9 @@ class Circuit : public Node {
             Node("circuit", CIRCUIT),
             owner(owner_name), 
             target_num_qubits_external(num_external_qubits),
-            target_num_qubits_internal(random_int(QuteFuzz::MAX_QUBITS, QuteFuzz::MIN_QUBITS)),
-            target_num_bits_external(random_int(QuteFuzz::MAX_BITS, QuteFuzz::MIN_BITS)),
-            target_num_bits_internal(random_int(QuteFuzz::MAX_BITS, QuteFuzz::MIN_BITS)) 
+            target_num_qubits_internal(random_uint(QuteFuzz::MAX_QUBITS, QuteFuzz::MIN_QUBITS)),
+            target_num_bits_external(random_uint(QuteFuzz::MAX_BITS, QuteFuzz::MIN_BITS)),
+            target_num_bits_internal(random_uint(QuteFuzz::MAX_BITS, QuteFuzz::MIN_BITS)) 
         {}
 
         inline bool owned_by(std::string other){return other == owner;}

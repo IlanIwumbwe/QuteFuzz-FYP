@@ -10,6 +10,7 @@
 #include <variant>
 #include <regex>
 #include <random>
+#include <fstream>
 #include <set>
 #include <filesystem>
 #include <unordered_map>
@@ -54,24 +55,26 @@ using U8 = uint8_t;
 
 namespace fs = std::filesystem;
 
-/*
-    flags 
-*/
-extern bool verbose;
-extern bool render_dags;
-extern bool run_genetic;
-extern bool swarm_testing;
-extern bool run_mutate;
+struct Control {
+    unsigned int GLOBAL_SEED_VAL;
+    bool render_dags;
+    bool swarm_testing;
+    bool run_mutate;
+};
 
 void lower(std::string& str);
 
-std::mt19937& seed();
+std::ofstream get_stream(fs::path output_dir, std::string file_name = "circuit.py");
 
-int random_int(int max, int min = 0);
+void init_global_seed(Control& control, std::optional<unsigned int> user_seed = std::nullopt);
+
+std::mt19937& rng();
+
+unsigned int random_uint(unsigned int max = UINT32_MAX, unsigned int min = 0);
 
 float random_float(float max, float min = 0.0);
 
-std::optional<int> safe_stoi(const std::string& str);
+std::optional<unsigned int> safe_stoul(const std::string& str);
 
 std::vector<std::vector<int>> n_choose_r(const int n, const int r);
 
