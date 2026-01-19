@@ -1,10 +1,28 @@
 [project]
 name = "qutefuzz"
-version = "0.1.0"
-description = "Add your description here"
+version = "1.0.0"
+description = "Fuzzing framework for quantum compilers"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pytket",
+    "qiskit",
+    "pytket-qiskit",
+    "matplotlib",
+    "sympy",
+    "z3-solver",
+    "cirq",
+    "tket2",
+    "pytket-qir",
+    "qnexus",
+    "tket",
+    "selene-sim",
+    "guppylang",
+    "hugr-qir @ git+https://github.com/CQCL/hugr-qir.git", 
+]
+
+[tool.uv]
+sources.qir-runner = { path = "libs/qir-runner/pip", editable = true }
 
 [dependency-groups]
 dev = [
