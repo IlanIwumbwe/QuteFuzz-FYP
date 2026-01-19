@@ -12,8 +12,8 @@ jobs:
 
       - name: Run Setup Script
         run: |
-          chmod +x scripts/setup/setup_deps.sh
-          ./scripts/setup/setup_deps.sh
+          chmod +x scripts/setup/setup_env.sh
+          ./scripts/setup/setup_env.sh
 
       - name: Linting (Ruff & Pyright) for Python only (C++ later)
         run: |
