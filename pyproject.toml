@@ -22,8 +22,6 @@ dependencies = [
 ]
 
 [tool.uv]
-# This tells uv to look for the qir-runner package in the local libs folder
-# This replaces your manual "cd pip && uv pip install -e ."
 sources.qir-runner = { path = "libs/qir-runner/pip", editable = true }
 
 [dependency-groups]
