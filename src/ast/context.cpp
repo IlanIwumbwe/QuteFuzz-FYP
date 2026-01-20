@@ -6,24 +6,31 @@ int Context::ast_counter = -1;
 
 void Context::reset(Reset_level l){
 
-    if(l == RL_PROGRAM){
-        subroutine_counter = 0;
-        Node::node_counter = 0;
-        can_copy_dag = false;
+    // fall-throughts are intentional
 
-        circuits.clear();
+    switch(l){
+        case RL_PROGRAM: {
+            subroutine_counter = 0;
+            Node::node_counter = 0;
+            can_copy_dag = false;
 
-        subroutines_node = std::nullopt;
-        genome = std::nullopt;
+            circuits.clear();
 
-    } else if (l == RL_CIRCUIT){
-        nested_depth = control.nested_max_depth;
+            subroutines_node = std::nullopt;
+            genome = std::nullopt;
+            [[fallthrough]];
+        }
 
-    } else if (l == RL_QUBIT_OP){
-        get_current_circuit()->qubit_flag_reset();
-        get_current_circuit()->bit_flag_reset();
+        case RL_CIRCUIT: 
+            nested_depth = control.nested_max_depth;
+            [[fallthrough]];
 
-        current_port = 0;
+        case RL_QUBIT_OP: {
+            get_current_circuit()->qubit_flag_reset();
+            get_current_circuit()->bit_flag_reset();
+
+            current_port = 0;
+        }
     }
 }
 
@@ -306,17 +313,13 @@ std::shared_ptr<Variable> Context::get_current_bit_definition_name(){
     }
 }
 
-std::shared_ptr<Nested_branch> Context::get_nested_branch(const std::string& str, const Token_kind& kind, std::shared_ptr<Node> parent){
-    if(can_copy_dag){
-        return std::make_shared<Nested_branch>(str, kind, parent->get_next_child_target());
-
-    } else {
-        return std::make_shared<Nested_branch>(str, kind);
-    }
-}
-
+/// @brief Any stmt that is nested (if, elif, else) is a nested stmt. Any time such a node is used, reduce nested depth
+/// @param str 
+/// @param kind 
+/// @param parent 
+/// @return 
 std::shared_ptr<Nested_stmt> Context::get_nested_stmt(const std::string& str, const Token_kind& kind, std::shared_ptr<Node> parent){
-    nested_depth -= 1;
+    nested_depth = (nested_depth == 0) ? 0 : nested_depth - 1;
 
     if(can_copy_dag){
         return std::make_shared<Nested_stmt>(str, kind, parent->get_next_child_target());
@@ -373,3 +376,9 @@ std::shared_ptr<Subroutine_defs> Context::new_subroutines_node(){
     return node;
 }
 
+std::shared_ptr<Qubit_op> Context::new_qubit_op_node(){
+    reset(RL_QUBIT_OP);
+    current_qubit_op = can_copy_dag ? genome.value().dag.get_next_node() : std::make_shared<Qubit_op>(get_current_circuit());
+
+    return current_qubit_op;
+}

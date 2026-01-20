@@ -23,11 +23,11 @@ class Ast{
 
         inline bool entry_set(){return entry != nullptr;}
 
-        void write_branch(std::shared_ptr<Node> parent, const Term& term, const Control& control, unsigned int depth = 0);
+        void write_branch(std::shared_ptr<Node> term_as_node, const Term& term, const Control& control, unsigned int depth = 0);
 
         std::shared_ptr<Node> get_node(const std::shared_ptr<Node> parent, const Term& term);
 
-        Result<Node> build(const std::optional<Genome>& genome, const std::optional<Node_constraint>& swarm_testing_gateset, const Control& control);
+        Result<Node> build(const std::optional<Genome>& genome, const std::optional<Node_constraints>& swarm_testing_gateset, const Control& control);
 
         Genome genome();
 
@@ -50,7 +50,7 @@ class Ast{
         std::shared_ptr<Node> dummy = std::make_shared<Node>("");
         std::shared_ptr<Node> root;
         std::shared_ptr<Dag> dag;
-        std::optional<Node_constraint> swarm_testing_gateset = std::nullopt;
+        std::optional<Node_constraints> swarm_testing_gateset = std::nullopt;
         Context context;
 };
 

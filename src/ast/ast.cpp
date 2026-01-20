@@ -15,7 +15,6 @@
 #include <gate_op_args.h>
 #include <subroutine_defs.h>
 #include <compound_stmt.h>
-#include <nested_branch.h>
 #include <disjunction.h>
 #include <conjunction.h>
 #include <compare_op_bitwise_or_pair_child.h>
@@ -25,6 +24,10 @@
 
 std::string Node::indentation_tracker = "";
 
+/// @brief Return node version of the term. Use the term's parent node if needed
+/// @param parent 
+/// @param term 
+/// @return 
 std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Term& term){
 
 	if(parent == nullptr){
@@ -61,11 +64,6 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 		case INDENTATION_DEPTH:
 			return std::make_shared<Integer>(Node::indentation_tracker.size());
 
-		/// TODO: add grammar syntax to allow certain rules to exclude other rules downstream, useful for non_comptime_circuit
-		// case QuteFuzz::non_comptime_circuit:
-		// 	context.set_can_apply_subroutines(false);
-		// 	return std::make_shared<Node>(str, hash);
-
 		case CIRCUIT:
 			return context.new_circuit_node();
 
@@ -78,17 +76,9 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 		case COMPOUND_STMT:
 			return context.get_compound_stmt(parent);
 
-		case IF_STMT:
-			// Bridging solution for IF_STMT without defining it as a gate
+		case IF_STMT: case ELIF_STMT: case ELSE_STMT:
 			context.reset(RL_QUBIT_OP);
-
 			return context.get_nested_stmt(str, kind, parent);
-
-		case ELIF_STMT: case ELSE_STMT:
-			// Bridging solution for IF_STMT without defining it as a gate
-			context.reset(RL_QUBIT_OP);
-
-			return context.get_nested_branch(str, kind, parent);
 
 		case DISJUNCTION:
 			return std::make_shared<Disjunction>();
@@ -258,17 +248,27 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 
 }
 
-void Ast::write_branch(std::shared_ptr<Node> parent, const Term& term, const Control& control, unsigned int depth){
+void Ast::write_branch(std::shared_ptr<Node> term_as_node, const Term& term, const Control& control, unsigned int depth){
+	/*
+		there's no guarantee of the term as node kind being the same as term kind, for good reason. 
+		if there's a term `circuit_name` the kind of that term is `CIRCUIT_NAME` but the node that 
+		is retuned is a `SYNTAX` node which contains the circuit name
+
+		same goes for `QUBIT_DEF` term where the node could be `REGISTER_QUBIT_DEF` or `SINGULAR_QUBIT_DEF`	
+	*/
+	if (depth >= QuteFuzz::RECURSION_LIMIT){
+		throw std::runtime_error(ANNOT("Recursion limit reached when writing branch for term: " + term_as_node->get_content()));
+	}
 
 	if(term.is_rule()){
 
-		Branch branch = term.get_rule()->pick_branch(parent);
+		Branch branch = term.get_rule()->pick_branch(term_as_node);
 
 		for(const Term& child_term : branch){
 
-			std::shared_ptr<Node> child_node = get_node(parent, child_term);
+			std::shared_ptr<Node> child_node = get_node(term_as_node, child_term);
 
-			parent->add_child(child_node);
+			term_as_node->add_child(child_node);
 
 			if(child_node->size()) continue;
 
@@ -277,10 +277,10 @@ void Ast::write_branch(std::shared_ptr<Node> parent, const Term& term, const Con
 	}
 
 	// done
-	parent->transition_to_done();
+	term_as_node->transition_to_done();
 }
 
-Result<Node> Ast::build(const std::optional<Genome>& genome, const std::optional<Node_constraint>& _swarm_testing_gateset, const Control& control){
+Result<Node> Ast::build(const std::optional<Genome>& genome, const std::optional<Node_constraints>& _swarm_testing_gateset, const Control& control){
 	Result<Node> res;
 
 	if(entry == nullptr){
@@ -293,7 +293,9 @@ Result<Node> Ast::build(const std::optional<Genome>& genome, const std::optional
 		context.set_genome(genome);
 		context.set_control(control);
 
-		Term entry_term(entry, entry->get_token().kind);
+		Token_kind entry_token_kind = entry->get_token().kind;
+
+		Term entry_term(entry, entry_token_kind);
 
 		root = get_node(std::make_shared<Node>(""), entry_term);
 
