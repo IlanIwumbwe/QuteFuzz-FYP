@@ -171,10 +171,7 @@ def run_circuit(
 ) -> tuple[str, str, int]:
     """Run a single circuit and capture output"""
     try:
-        cmd = [sys.executable, "-m", "coverage", "run",
-               "--source",
-               grammar,
-               str(script_path)]
+        cmd = [sys.executable, "-m", "coverage", "run", "--source", grammar, str(script_path)]
 
         if plot:
             cmd.append("--plot")
