@@ -73,28 +73,36 @@ void Run::set_grammar(Control& control){
 
     setup_output_dir(grammar_name);
 
-    control.ext = current_generator->get_grammar()->dig("extension");
+    control.ext = current_generator->get_grammar()->dig("EXTENSION");
+
+    if(control.ext == ""){
+        throw std::runtime_error(ANNOT("Grammar " + grammar_name + " does not define an extension"));
+    }
+
     control.min_qubits = std::max(
-        safe_stoul(current_generator->get_grammar()->dig("min_qubits")).value_or(QuteFuzz::MIN_QUBITS), 
+        safe_stoul(current_generator->get_grammar()->dig("MIN_NUM_QUBITS"), QuteFuzz::MIN_QUBITS), 
         QuteFuzz::MIN_QUBITS);
     control.min_bits = std::max(
-        safe_stoul(current_generator->get_grammar()->dig("min_bits")).value_or(QuteFuzz::MIN_BITS), 
+        safe_stoul(current_generator->get_grammar()->dig("MIN_NUM_BITS"), QuteFuzz::MIN_BITS), 
         QuteFuzz::MIN_BITS);
     control.max_qubits = std::min(
-        safe_stoul(current_generator->get_grammar()->dig("max_qubits")).value_or(QuteFuzz::MAX_QUBITS), 
+        safe_stoul(current_generator->get_grammar()->dig("MAX_NUM_QUBITS"), QuteFuzz::MAX_QUBITS), 
         QuteFuzz::MAX_QUBITS);
     control.max_bits = std::min(
-        safe_stoul(current_generator->get_grammar()->dig("max_bits")).value_or(QuteFuzz::MAX_BITS), 
+        safe_stoul(current_generator->get_grammar()->dig("MAX_NUM_BITS"), QuteFuzz::MAX_BITS), 
         QuteFuzz::MAX_BITS);
     control.max_subroutines = std::min(
-        safe_stoul(current_generator->get_grammar()->dig("max_subroutines")).value_or(QuteFuzz::MAX_SUBROUTINES), 
+        safe_stoul(current_generator->get_grammar()->dig("MAX_NUM_SUBROUTINES"), QuteFuzz::MAX_SUBROUTINES), 
         QuteFuzz::MAX_SUBROUTINES);
     control.nested_max_depth = std::min(
-        safe_stoul(current_generator->get_grammar()->dig("nested_max_depth")).value_or(QuteFuzz::NESTED_MAX_DEPTH),
+        safe_stoul(current_generator->get_grammar()->dig("NESTED_MAX_DEPTH"), QuteFuzz::NESTED_MAX_DEPTH),
         QuteFuzz::NESTED_MAX_DEPTH);
-    control.wildcard_max = std::min(
-        safe_stoul(current_generator->get_grammar()->dig("wildcard_max")).value_or(QuteFuzz::WILDCARD_MAX),
-        QuteFuzz::WILDCARD_MAX);
+
+    current_generator->set_grammar_control(control);
+
+    #ifdef DEBUG
+    std::cout << control << std::endl;
+    #endif
 }
 
 void Run::tokenise(const std::string& command, const char& delim){
@@ -142,7 +150,6 @@ void Run::loop(){
         .max_bits = QuteFuzz::MAX_BITS,
         .max_subroutines = QuteFuzz::MAX_SUBROUTINES,
         .nested_max_depth = QuteFuzz::NESTED_MAX_DEPTH,
-        .wildcard_max = QuteFuzz::WILDCARD_MAX
     };
 
     init_global_seed(qf_control);
@@ -157,7 +164,7 @@ void Run::loop(){
             if (is_grammar(tokens[0])){
                 set_grammar(qf_control);
             } else if (tokens[0] == "seed") {
-                init_global_seed(qf_control, safe_stoul(tokens[1]));
+                init_global_seed(qf_control, safe_stoul(tokens[1], 0));
                 INFO("Global seed set to " + std::to_string(qf_control.GLOBAL_SEED_VAL));
             }
 
@@ -188,7 +195,7 @@ void Run::loop(){
             } else if (current_command == "pg") {
                 current_generator->print_grammar();
 
-            } else if ((n_programs = safe_stoul(current_command))){
+            } else if ((n_programs = safe_stoul(current_command, 1))){
                 remove_all_in_dir(current_output_dir);
 
                 for(size_t build_counter = 0; build_counter < n_programs.value_or(0); build_counter++){

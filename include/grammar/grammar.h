@@ -96,6 +96,10 @@ class Grammar{
 
         inline std::string get_path(){return path.string();}
 
+        inline void set_control(const Control& _control){
+            control = _control;
+        }
+
     private:
         std::vector<Token> tokens;
         size_t num_tokens = 0;
@@ -119,6 +123,8 @@ class Grammar{
         Lexer lexer;
         std::string name;
         fs::path path;
+
+        Control control;
 };
 
 #endif

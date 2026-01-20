@@ -261,6 +261,7 @@ const std::vector<Token_matcher> TOKEN_RULES = {
     Token_matcher("circuit_id", CIRCUIT_ID),
     Token_matcher("INDENT", INDENT),
     Token_matcher("DEDENT", DEDENT),
+    Token_matcher("NUMBER", NUMBER),
     Token_matcher("if_stmt", IF_STMT),
     Token_matcher("else_stmt", ELSE_STMT),
     Token_matcher("elif_stmt", ELIF_STMT),
@@ -269,7 +270,6 @@ const std::vector<Token_matcher> TOKEN_RULES = {
     Token_matcher("inversion", INVERSION),
     Token_matcher("expression", EXPRESSION),
     Token_matcher("compare_op_bitwise_or_pair", COMPARE_OP_BITWISE_OR_PAIR),
-    Token_matcher("NUMBER", NUMBER),
     Token_matcher("subroutine_op_args", SUBROUTINE_OP_ARGS),
     Token_matcher("gate_op_args", GATE_OP_ARGS),
     Token_matcher("subroutine_op_arg", SUBROUTINE_OP_ARG),
@@ -352,7 +352,7 @@ const std::vector<Token_matcher> TOKEN_RULES = {
 };
 
 const std::string FULL_REGEX = 
-    R"([a-zA-Z_][a-zA-Z0-9_]*|[0-9]+(\.[0-9]+)?|#[^\n]*|\(\*|\*\)|\".*?\"|\'.*?\'|->|::|.)";
+    R"([a-zA-Z_][a-zA-Z0-9_]*|[0-9]+(\.[0-9]+)?|#[^\n]*|\(\*|\*\)|\".*?\"|\'.*?\'|->|::|\+=|.)";
 
 
 class Lexer{

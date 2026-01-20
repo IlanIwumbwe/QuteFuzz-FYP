@@ -26,6 +26,10 @@ struct Generator {
             scope = _scope;
         }
 
+        inline void set_grammar_control(const Control& control){
+            grammar->set_control(control);
+        }
+
         std::shared_ptr<Ast> setup_builder();
 
         friend std::ostream& operator<<(std::ostream& stream, Generator generator){

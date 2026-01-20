@@ -64,7 +64,7 @@ void Lexer::lex(){
                 tokens.push_back(Token{text, RULE});
 
             } else if (isdigit(text[0])) {
-                tokens.push_back(Token{text, NUMBER});
+                tokens.push_back(Token{text, SYNTAX});
 
             } else {
                 tokens.push_back(Token{remove_outer_quotes(text), SYNTAX});

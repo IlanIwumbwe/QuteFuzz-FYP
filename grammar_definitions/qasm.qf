@@ -1,6 +1,6 @@
 # qasm.qf
 
-extension = ".qasm";
+EXTENSION = ".qasm";
 MAX_NUM_QUBITS = 10;
 
 # 1. OVERRIDES (Ignore Python stuff from meta-grammar)

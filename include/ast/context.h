@@ -148,7 +148,13 @@ struct Context {
 
 		inline std::shared_ptr<Integer> get_circuit_id(){return std::make_shared<Integer>(ast_counter);}
 
-		void set_genome(const std::optional<Genome>& _genome);
+		inline void set_genome(const std::optional<Genome>& _genome){
+			genome = _genome;
+		}
+
+		inline void set_control(const Control& _control){
+			control = _control;
+		}
 
 		inline void print_circuit_info() const {
 			for(const std::shared_ptr<Circuit>& circuit : circuits){
@@ -180,6 +186,8 @@ struct Context {
 		std::optional<Genome> genome;
 
 		bool can_copy_dag;
+
+		Control control;
 };
 
 

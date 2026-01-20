@@ -78,9 +78,7 @@ def clean_and_build():
 
     log("Compiling QuteFuzz...", Color.YELLOW)
     try:
-        # Configure
         run_command("cmake -DCMAKE_BUILD_TYPE=Release ..", cwd=BUILD_DIR)
-        # Build
         run_command("make -j$(nproc)", cwd=BUILD_DIR)
         log("Build successful.", Color.GREEN)
     except Exception:
