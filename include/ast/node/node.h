@@ -19,49 +19,44 @@ enum Node_kind {
 };
 
 
-struct Node_constraint {
+struct Node_constraints {
 
     public:
 
-        Node_constraint(){}
+        Node_constraints(){}
 
-        Node_constraint(Token_kind rule, unsigned int _occurances):
+        Node_constraints(Token_kind rule, unsigned int _occurances):
             rule_kinds_and_occurances{{rule, _occurances}}
         {}
 
-        Node_constraint(std::unordered_map<Token_kind, unsigned int> _rule_kinds_and_occurances):
+        Node_constraints(std::unordered_map<Token_kind, unsigned int> _rule_kinds_and_occurances):
             rule_kinds_and_occurances(std::move(_rule_kinds_and_occurances))
         {}
 
-        bool passed(const Branch& branch){
-            // Count the number of occurances of each rule in the branch and return true if they match the expected occurances
-            for(const auto& [rule, occurances] : rule_kinds_and_occurances){
-                if(branch.count_rule_occurances(rule) != occurances){
-                    return false;
-                }
-            }
-            return true;
-        }
+        bool passed(const Branch& branch);
 
-        void set_occurances_for_rule(const Token_kind& rule, unsigned int n_occurances){
-            rule_kinds_and_occurances[rule] = n_occurances;
-        }
+        void set_occurances_for_rule(const Token_kind& rule, unsigned int n_occurances);
 
-        unsigned int size() const {
+        inline unsigned int n_constraints() const {
             return rule_kinds_and_occurances.size();
         }
 
-        void add(const Token_kind& rule, unsigned int n_occurances){
-            //Check if rule is in rule_kinds_and_occurances
-            if(rule_kinds_and_occurances.find(rule) != rule_kinds_and_occurances.end()){
-                rule_kinds_and_occurances[rule] += n_occurances;
-            } else {
-                rule_kinds_and_occurances[rule] = n_occurances;
-            }
+        void add(const Token_kind& rule, unsigned int n_occurances);
+
+        inline const std::unordered_map<Token_kind, unsigned int>& get_constraints() const {
+            return rule_kinds_and_occurances;
         }
 
-        const std::unordered_map<Token_kind, unsigned int>& get_constraints() const {
-            return rule_kinds_and_occurances;
+        friend std::ostream& operator<<(std::ostream& stream, Node_constraints& nc) {
+            stream << "====================================" << std::endl;
+
+            for(const auto& [rule, occurances] : nc.rule_kinds_and_occurances){
+                stream << rule << " " << occurances << std::endl;               
+            }
+
+            stream << "====================================" << std::endl; 
+
+            return stream;
         }
 
     private:
@@ -86,11 +81,11 @@ class Node : public std::enable_shared_from_this<Node> {
             id = node_counter++;
         }
 
-        Node(std::string _content, Token_kind _kind, const std::optional<Node_constraint>& _constraint, const std::string _indentation_str = ""):
+        Node(std::string _content, Token_kind _kind, const std::optional<Node_constraints>& _constraints, const std::string _indentation_str = ""):
             content(_content),
             kind(_kind),
             indentation_str(_indentation_str),
-            constraint(_constraint)
+            constraints(_constraints)
         {
             id = node_counter++;
         }
@@ -113,16 +108,7 @@ class Node : public std::enable_shared_from_this<Node> {
             return id;
         }
 
-        std::string get_content() const {
-            std::string esc_content = (kind == SYNTAX) ? escape_string(content) : content;
-            std::string str_id = " " + std::to_string(id);
-
-            if(content.size() > 10){
-                return esc_content.substr(0, 10) + " ... " + str_id;
-            } else {
-                return esc_content + str_id;
-            }
-        }
+        std::string get_content() const;
 
         Token_kind get_kind() const {
             return kind;
@@ -205,29 +191,15 @@ class Node : public std::enable_shared_from_this<Node> {
             return get_content() == other.get_content();
         }
 
-        bool branch_satisfies_constraint(const Branch& branch){
-            return (!constraint.has_value() || constraint.value().passed(branch));
-        }
-
-        void set_constraint(std::vector<Token_kind> rule_kinds, std::vector<unsigned int> occurances){
-            if(rule_kinds.size() != occurances.size()){
-                ERROR("Hashes vector must be the same size as occurances vector!");
-            }
-
-            // Convert to unordered map for constructor of Node_constraint
-            std::unordered_map<Token_kind, unsigned int> gateset_map;
-            for(size_t i = 0; i < rule_kinds.size(); ++i){
-                gateset_map[rule_kinds[i]] = occurances[i];
-            }
-
-            constraint = std::make_optional<Node_constraint>(gateset_map);
+        bool branch_satisfies_constraints(const Branch& branch){
+            return !constraints.has_value() || constraints.value().passed(branch);
         }
 
         void add_constraint(const Token_kind& rule_kind, unsigned int n_occurances){
-            if(constraint.has_value()){
-                constraint.value().add(rule_kind, n_occurances);
+            if(constraints.has_value()){
+                constraints.value().add(rule_kind, n_occurances);
             } else {
-                constraint = std::make_optional<Node_constraint>(rule_kind, n_occurances);
+                constraints = std::make_optional<Node_constraints>(rule_kind, n_occurances);
             }
         }
 
@@ -238,6 +210,18 @@ class Node : public std::enable_shared_from_this<Node> {
         void make_partition(int target, int n_children);
 
         void make_control_flow_partition(int target, int n_children);
+
+        inline bool has_constraints(){
+            return constraints.has_value();
+        }
+
+        inline void print_constraints(std::ostream& stream){
+            if(constraints.has_value()){
+                stream << constraints.value() << std::endl;
+            } else {
+                stream << GREEN("NO CONSTRAINTS") << std::endl;
+            }
+        }
 
     protected:
         int id = 0;
@@ -252,7 +236,7 @@ class Node : public std::enable_shared_from_this<Node> {
         unsigned int partition_counter = 0;
 
     private:
-        std::optional<Node_constraint> constraint;
+        std::optional<Node_constraints> constraints;
 };
 
 #endif

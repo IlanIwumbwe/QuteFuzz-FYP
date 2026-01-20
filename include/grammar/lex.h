@@ -12,10 +12,7 @@
 enum Token_kind {
     _EOF = 0,
 
-    RULE_KINDS_TOP,
-    /*
-            RULE_KINDS_TOP: add new rule types below
-    */
+    RULE_KINDS_TOP,                  /// ADD NEW RULES BELOW!
     RULE,
     H,
     X,
@@ -117,43 +114,39 @@ enum Token_kind {
     SINGULAR_RESOURCE,
     SINGULAR_RESOURCE_DEF,
     RESOURCE_DEF,
+    RULE_KINDS_BOTTOM,                            /// ADD NEW RULES ABOVE!
 
+    GRAMMAR_SYNTAX_TOP,                           /// ADD GRAMMAR SYNTAX BELOW!
     /*
-        RULE_KINDS_BOTTOM: add new rule kinds above
+        Tokens that aren't special rule types, but rather, are syntax used in the language
+        Add new syntax below
     */
-    RULE_KINDS_BOTTOM,
-
-        GRAMMAR_SYNTAX_TOP,
-        /*
-            Tokens that aren't special rule types, but rather, are syntax used in the language
-            Add new syntax below
-        */
-        SEPARATOR,
-        RULE_START,
-        RULE_APPEND,
-        RULE_END,
-        SYNTAX,
-        LPAREN,
-        LBRACK,
-        LBRACE,
-        RPAREN,
-        RBRACK,
-        RBRACE,
-        LANGLE_BRACKET,
-        RANGLE_BRACKET,
-        INTEGER,
-        ZERO_OR_MORE,
-        ONE_OR_MORE,
-        OPTIONAL,
-        ARROW,
-        INTERNAL,
-        EXTERNAL,
-        OWNED,
-        SCOPE_RES,
+    SEPARATOR,
+    RULE_START,
+    RULE_APPEND,
+    RULE_END,
+    SYNTAX,
+    LPAREN,
+    LBRACK,
+    LBRACE,
+    RPAREN,
+    RBRACK,
+    RBRACE,
+    LANGLE_BRACKET,
+    RANGLE_BRACKET,
+    INTEGER,
+    ZERO_OR_MORE,
+    ONE_OR_MORE,
+    OPTIONAL,
+    ARROW,
+    INTERNAL,
+    EXTERNAL,
+    OWNED,
+    SCOPE_RES,
     /*
         Grammar syntax end, add new syntax above
     */
-    GRAMMAR_SYNTAX_BOTTOM,
+    GRAMMAR_SYNTAX_BOTTOM,                      /// ADD GRAMMAR SYNTAX ABOVE!
 };
 
 inline bool is_wildcard(const Token_kind& kind) {
@@ -273,7 +266,7 @@ const std::vector<Token_matcher> TOKEN_RULES = {
     Token_matcher("subroutine_op_args", SUBROUTINE_OP_ARGS),
     Token_matcher("gate_op_args", GATE_OP_ARGS),
     Token_matcher("subroutine_op_arg", SUBROUTINE_OP_ARG),
-    Token_matcher("compound_stmts", COMPOUND_STMT),
+    Token_matcher("compound_stmt", COMPOUND_STMT),
     Token_matcher("compound_stmts", COMPOUND_STMTS),
     Token_matcher("indentation_depth", INDENTATION_DEPTH),
 

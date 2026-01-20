@@ -51,7 +51,7 @@ struct Generator {
 
         std::vector<Token_kind> get_available_gates();
 
-        Node_constraint get_swarm_testing_gateset();
+        Node_constraints get_swarm_testing_gateset();
 
         Node build_equivalent(Node ast_root);
 

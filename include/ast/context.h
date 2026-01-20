@@ -12,7 +12,6 @@
 #include <subroutine_defs.h>
 #include <genome.h>
 #include <nested_stmt.h>
-#include <nested_branch.h>
 
 
 enum Reset_level {
@@ -122,8 +121,6 @@ struct Context {
 
 		inline std::shared_ptr<Gate> get_current_gate(){return current_gate;}
 
-		std::shared_ptr<Nested_branch> get_nested_branch(const std::string& str, const Token_kind& kind, std::shared_ptr<Node> parent);
-
 		std::shared_ptr<Nested_stmt> get_nested_stmt(const std::string& str, const Token_kind& kind, std::shared_ptr<Node> parent);
 
 		std::shared_ptr<Compound_stmt> get_compound_stmt(std::shared_ptr<Node> parent);
@@ -132,13 +129,7 @@ struct Context {
 
 		std::shared_ptr<Subroutine_defs> new_subroutines_node();
 
-		std::shared_ptr<Qubit_op> new_qubit_op_node(){
-			reset(RL_QUBIT_OP);
-
-			current_qubit_op = can_copy_dag ? genome.value().dag.get_next_node() : std::make_shared<Qubit_op>(get_current_circuit());
-
-			return current_qubit_op;
-		}
+		std::shared_ptr<Qubit_op> new_qubit_op_node();
 
 		/// @brief Is the current circuit being generated a subroutine?
 		/// @return
@@ -154,6 +145,7 @@ struct Context {
 
 		inline void set_control(const Control& _control){
 			control = _control;
+			nested_depth = control.nested_max_depth;
 		}
 
 		inline void print_circuit_info() const {
@@ -171,8 +163,8 @@ struct Context {
 		Variable dummy_var;
 
 		unsigned int subroutine_counter = 0;
-		unsigned int current_port;
-		unsigned int nested_depth;
+		unsigned int current_port = 0;
+		unsigned int nested_depth; // default set when control is set
 
 		std::shared_ptr<Qubit_definition> current_qubit_definition = std::make_shared<Qubit_definition>();
 		std::shared_ptr<Bit_definition> current_bit_definition = std::make_shared<Bit_definition>();

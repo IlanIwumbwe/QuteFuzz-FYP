@@ -33,7 +33,7 @@ void Generator::ast_to_program(fs::path output_dir, const Control& control, unsi
     std::ofstream stream;
     stream = get_stream(output_dir, "prog" + control.ext);
 
-    std::optional<Node_constraint> gateset;
+    std::optional<Node_constraints> gateset;
 
     if (control.swarm_testing) {
         gateset = get_swarm_testing_gateset();
@@ -96,7 +96,7 @@ std::vector<Token_kind> Generator::get_available_gates(){
     return out;
 }
 
-Node_constraint Generator::get_swarm_testing_gateset(){
+Node_constraints Generator::get_swarm_testing_gateset(){
     std::vector<Token_kind> gates = get_available_gates();
 
     size_t n_gates = std::min((size_t)QuteFuzz::SWARM_TESTING_GATESET_SIZE, gates.size());
@@ -118,11 +118,11 @@ Node_constraint Generator::get_swarm_testing_gateset(){
 
     std::vector<unsigned int> occurances(n_gates, 0);
 
-    // Convert to unordered map for constructor of Node_constraint
+    // Convert to unordered map for constructor of Node_constraints
     std::unordered_map<Token_kind, unsigned int> gateset_map;
     for(size_t i = 0; i < n_gates; ++i){
         gateset_map[selected_gates[i]] = occurances[i];
     }
 
-    return Node_constraint(gateset_map);
+    return Node_constraints(gateset_map);
 }

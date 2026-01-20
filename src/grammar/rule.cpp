@@ -1,8 +1,6 @@
 #include <rule.h>
 #include <node.h>
 
-/// @brief need to have this check and store pointers to recursive branches separately
-/// @param branch
 void Rule::add(const Branch& branch){
     branches.push_back(branch);
 
@@ -11,38 +9,41 @@ void Rule::add(const Branch& branch){
     }
 }
 
-/// @brief checks for existing constraint, and adds the new constraint to it if it exists
-/// @param rule_kind
-/// @param n_occurances
-void Rule::add_constraint(const Token_kind& rule_kind, unsigned int n_occurances){
-    if(constraint.has_value()){
-        constraint.value().add(rule_kind, n_occurances);
-    } else {
-        constraint = std::make_optional<Node_constraint>(rule_kind, n_occurances);
-    }
-}
-
-Branch Rule::pick_branch(std::shared_ptr<Node> parent){
-
+/// @brief Pick a branch from the rule. The parent node here is the node created for this rule, and it contains a constriant which is used to pick
+/// the correct branch to make the child nodes
+/// @param parent 
+/// @return 
+Branch Rule::pick_branch(std::shared_ptr<Node> rule_as_node){
     size_t size = branches.size();
+
     bool valid_branch_exists = false;
+
     for (const auto& branch : branches) {
-        if (parent->branch_satisfies_constraint(branch)) {
+        if (rule_as_node->branch_satisfies_constraints(branch)) {
             valid_branch_exists = true;
             break;
         }
     }
 
-    if(size > 0 && valid_branch_exists){
+    if(valid_branch_exists){
         Branch branch = branches[random_uint(size - 1)];
 
-        while(!parent->branch_satisfies_constraint(branch)){
+        while(!rule_as_node->branch_satisfies_constraints(branch)){
             branch = branches[random_uint(size - 1)];
         }
 
         return branch;
 
     } else {
+
+        #ifdef DEBUG
+        if(rule_as_node->has_constraints()){
+            std::cout << "No branch exisits for this rule that satisfies constraints" << std::endl;
+            std::cout << *this << std::endl;
+            rule_as_node->print_constraints(std::cout);
+        }
+        #endif
+
         return Branch();
     }
 }

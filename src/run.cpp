@@ -99,10 +99,6 @@ void Run::set_grammar(Control& control){
         QuteFuzz::NESTED_MAX_DEPTH);
 
     current_generator->set_grammar_control(control);
-
-    #ifdef DEBUG
-    std::cout << control << std::endl;
-    #endif
 }
 
 void Run::tokenise(const std::string& command, const char& delim){
