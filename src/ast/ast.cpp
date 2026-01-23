@@ -287,9 +287,9 @@ Result<Node> Ast::build(const std::optional<Genome>& genome, const std::optional
 	} else {
 		swarm_testing_gateset = _swarm_testing_gateset;
 
-		context.reset(RL_PROGRAM);
 		context.set_genome(genome);
 		context.set_control(control);
+		context.reset(RL_PROGRAM);
 
 		Token_kind entry_token_kind = entry->get_token().kind;
 
