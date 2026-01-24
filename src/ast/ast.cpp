@@ -24,6 +24,8 @@
 
 std::string Node::indentation_tracker = "";
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch-enum"
 /// @brief Return node version of the term. Use the term's parent node if needed
 /// @param parent 
 /// @param term 
@@ -245,6 +247,7 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 	}
 
 }
+#pragma GCC diagnostic pop
 
 void Ast::write_branch(std::shared_ptr<Node> term_as_node, const Term& term, const Control& control, unsigned int depth){
 	/*
