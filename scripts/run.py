@@ -1,8 +1,10 @@
 import argparse
+import os
 import re
 import shutil
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -36,36 +38,13 @@ class Run_mode(Enum):
 class CircuitResult:
     """Tracks the result of running a single circuit"""
 
-    circuit_name: str
+    circuit_path: Path
     grammar: str
     had_syntax_error: bool = False
     had_runtime_error: bool = False
-    error_message: str = ""
     ks_values: List[float] = field(default_factory=list)
     is_interesting: bool = False
     reason: str = ""
-
-
-def is_circuit_interesting(result: CircuitResult) -> tuple[bool, str]:
-    """Determine if a circuit is interesting based on errors and KS values"""
-    reasons = []
-
-    if result.had_syntax_error:
-        reasons.append("Syntax/Indentation/Name error (Fuzzer bug)")
-
-    if result.had_runtime_error:
-        reasons.append("Runtime error during execution")
-
-    # Check KS values
-    if result.ks_values:
-        min_ks = min(result.ks_values)
-        if min_ks < MIN_KS_VALUE:
-            reasons.append(f"Low KS value: {min_ks:.4f} < {MIN_KS_VALUE}")
-
-    is_interesting = len(reasons) > 0
-    reason_str = "; ".join(reasons) if reasons else ""
-
-    return is_interesting, reason_str
 
 
 def log(msg, color=Color.RESET):
@@ -135,10 +114,15 @@ def parse():
     parser.add_argument(
         "--grammars", nargs="+", default=GRAMMARS, help="Grammars to test (default: all)"
     )
-    parser.add_argument(
-        "--seed", type=int, help="Seed for random number generator", default=None, nargs=1
-    )
+    parser.add_argument("--seed", type=int, help="Seed for random number generator", default=None)
     parser.add_argument("--plot", action="store_true", help="Plot results after running circuit")
+    parser.add_argument(
+        "--workers",
+        type=int,
+        help="Number of parallel workers (default: 2x CPU cores)",
+        default=None,
+    )
+    parser.add_argument("--coverage", action="store_true", help="Collect coverage info")
 
     return parser.parse_args()
 
@@ -146,23 +130,34 @@ def parse():
 class Check_grammar:
     def __init__(
         self,
-        timestamp : str,
+        timestamp: str,
         num_tests: int | None,
         name: str,
         seed: (int | None) = None,
         mode: Run_mode = Run_mode.CI,
         plot: bool = False,
+        coverage: bool = False,
+        max_workers: int | None = None,
     ) -> None:
         self.num_tests = DEFAULT_NUM_TESTS if num_tests is None else num_tests
         self.name = name
         self.seed = seed
         self.mode = mode
         self.plot = plot
+        self.coverage = coverage
         self.current_output_dir = OUTPUT_DIR / self.name
         self.regression_seed_src = self.current_output_dir / "regression_seed.txt"
 
         self.nightly_run_dir = NIGHTLY_DIR / timestamp / self.name
         self.regression_seed_dst = self.nightly_run_dir / "regression_seed.txt"
+
+        if max_workers is None:
+            cpu_count = os.cpu_count() or 4
+            self.max_workers = cpu_count * 2
+        else:
+            self.max_workers = max_workers
+
+        log(f"Using {self.max_workers} parallel workers", Color.BLUE)
 
     def generate_tests(self):
         """
@@ -173,12 +168,10 @@ class Check_grammar:
 
         fuzzer_executable = BUILD_DIR / "fuzzer"
 
-        # Commands to feed into the fuzzer CLI
-
-        input_str = f"{self.name} {ENTRY_POINT}\n{self.num_tests}\n"
-
-        if self.seed:
-            input_str += f"seed {self.seed}\n"
+        if self.seed is None:
+            input_str = f"{self.name} {ENTRY_POINT}\nseed {self.seed}\n{self.num_tests}\n"
+        else:
+            input_str = f"{self.name} {ENTRY_POINT}\n{self.num_tests}\n"
 
         input_str += "quit\n"
 
@@ -219,7 +212,18 @@ class Check_grammar:
         Run a single circuit and capture output
         """
         try:
-            cmd = [sys.executable, "-m", "coverage", "run", "--source", self.name, str(script_path)]
+            if self.coverage:
+                cmd = [
+                    sys.executable,
+                    "-m",
+                    "coverage",
+                    "run",
+                    "--source",
+                    self.name,
+                    str(script_path),
+                ]
+            else:
+                cmd = [sys.executable, str(script_path)]
 
             if self.plot:
                 cmd.append("--plot")
@@ -237,18 +241,16 @@ class Check_grammar:
             return "", f"Exception running circuit: {str(e)}", 1
 
     def validate_generated_circuit(self, index: int, circuit_path: Path) -> CircuitResult:
-        result = CircuitResult(circuit_name=circuit_path.name, grammar=self.name)
+        result = CircuitResult(circuit_path=circuit_path, grammar=self.name)
 
         if not circuit_path.exists():
-            result.error_message = "Circuit not found at" + str(circuit_path)
-            result.had_runtime_error = True
-            log(result.error_message, Color.RED)
-
-        log(f"Running circuit {index}/{self.num_tests}: {circuit_path.name}", Color.BLUE)
+            log("Circuit not found at" + str(circuit_path), Color.RED)
+            sys.exit(0)
 
         stdout, stderr, returncode = self.run_circuit(circuit_path)
 
         if returncode != 0:
+            result.is_interesting = True
             # Analyze the error
             combined_output = stdout + stderr
 
@@ -256,26 +258,21 @@ class Check_grammar:
                 err in combined_output for err in ["SyntaxError", "IndentationError", "NameError"]
             ):
                 result.had_syntax_error = True
-                result.error_message = stderr[:500]  # Truncate long errors
-                log("  Syntax error detected", Color.RED)
+                result.reason = combined_output
             else:
                 result.had_runtime_error = True
-                result.error_message = stderr[:500]
-                log("  Runtime error detected", Color.YELLOW)
-
-        if result.had_syntax_error:
-            log(f"Error message:\n{result.error_message}", Color.RED)
+                result.reason = combined_output
 
         # Parse KS values from output
         result.ks_values = parse_ks_values(stdout)
         if result.ks_values:
-            log(f"  KS values: {[f'{v:.4f}' for v in result.ks_values]}", Color.BLUE)
-
-        # Determine if interesting
-        result.is_interesting, result.reason = is_circuit_interesting(result)
+            min_ks = min(result.ks_values)
+            if min_ks < MIN_KS_VALUE:
+                result.is_interesting = True
+                result.reason = f"Low KS value: {min_ks:.4f} < {MIN_KS_VALUE}; "
 
         if result.is_interesting:
-            log(f"  INTERESTING: {result.reason}", Color.YELLOW)
+            log(f"  INTERESTING: {circuit_path}", Color.YELLOW)
 
         return result
 
@@ -284,25 +281,47 @@ class Check_grammar:
 
         interesting_results = []
 
-        for i, circuit_dir in enumerate(circuit_dirs, 1):
-            result = self.validate_generated_circuit(i, circuit_dir / "prog.py")
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            # Submit all tasks
+            future_to_circuit = {
+                executor.submit(self.validate_generated_circuit, i, circuit_dir / "prog.py"): (
+                    i,
+                    circuit_dir,
+                )
+                for i, circuit_dir in enumerate(circuit_dirs, 1)
+            }
 
-            if result.is_interesting:
-                interesting_results.append(result)
+            # Process results as they complete
+            for future in as_completed(future_to_circuit):
+                i, circuit_dir = future_to_circuit[future]
+                try:
+                    result = future.result()
+                    if result.is_interesting:
+                        interesting_results.append(result)
+                except Exception as e:
+                    log(f"Error validating circuit {circuit_dir.name}: {e}", Color.RED)
+
+        log("Validation complete.", Color.GREEN)
 
         if self.mode == Run_mode.NIGHTLY and len(interesting_results):
+            log(f"Found {len(interesting_results)} interesting circuits.", Color.GREEN)
+
             self.nightly_run_dir.mkdir(parents=True, exist_ok=True)
 
             for ires in interesting_results:
                 self.save_interesting_circuit(ires)
 
             # copy over regression seed to nightly results directory
+            log(f"Saving regression seed {self.regression_seed_src} -> {self.regression_seed_dst}")
+
             self.regression_seed_dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(self.regression_seed_src, self.regression_seed_dst)
 
     def save_interesting_circuit(self, result: CircuitResult):
-        src_dir = self.current_output_dir / result.circuit_name
-        dst_dir = self.nightly_run_dir / result.circuit_name
+        src_dir = result.circuit_path.parent
+        dst_dir = self.nightly_run_dir / result.circuit_path.parent.name
+
+        log(f"Saving interesting circuit {src_dir} -> {dst_dir}")
 
         if src_dir.exists():
             shutil.copytree(src_dir, dst_dir, dirs_exist_ok=True)
@@ -310,18 +329,17 @@ class Check_grammar:
             # Save metadata about why it's interesting
             metadata_path = dst_dir / "analysis.txt"
             with open(metadata_path, "w") as f:
-                f.write(f"Circuit: {result.circuit_name}\n")
+                f.write(f"Circuit: {result.circuit_path.name}\n")
                 f.write(f"Grammar: {result.grammar}\n")
                 f.write(f"Reason: {result.reason}\n")
                 f.write(f"Had syntax error: {result.had_syntax_error}\n")
                 f.write(f"Had runtime error: {result.had_runtime_error}\n")
                 f.write(f"KS values: {result.ks_values}\n")
-                if result.error_message:
-                    f.write("\nError message:\n{result.error_message}\n")
 
     def check(self):
         self.generate_tests()
         self.validate_generated_circuits()
+
 
 def main():
     args = parse()
@@ -336,7 +354,9 @@ def main():
         log(f"Testing grammar: {grammar}", Color.BLUE)
         log(f"{'=' * 60}", Color.BLUE)
 
-        Check_grammar(run_timestamp, args.num_tests, grammar, args.seed, mode, args.plot).check()
+        Check_grammar(
+            run_timestamp, args.num_tests, grammar, args.seed, mode, args.plot, args.workers
+        ).check()
 
 
 if __name__ == "__main__":
