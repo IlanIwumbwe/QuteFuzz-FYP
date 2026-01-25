@@ -1993,7 +1993,7 @@ wheels = [
 [[package]]
 name = "qutefuzz"
 version = "1.0.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "cirq" },
     { name = "coverage" },
