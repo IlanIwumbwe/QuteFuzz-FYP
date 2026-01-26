@@ -45,7 +45,7 @@ class Run{
         std::unordered_map<std::string, std::shared_ptr<Generator>> generators;
         std::shared_ptr<Generator> current_generator = nullptr;
         std::vector<std::string> tokens;
-        std::optional<unsigned int> n_programs;
+        unsigned int n_programs;
 };
 
 #endif

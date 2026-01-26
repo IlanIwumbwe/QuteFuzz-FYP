@@ -94,8 +94,8 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 		case CIRCUIT_ID:
 			return context.get_circuit_id();
 
-		case MAIN_CIRCUIT_NAME:
-			return std::make_shared<Variable>(QuteFuzz::TOP_LEVEL_CIRCUIT_NAME);
+		// case MAIN_CIRCUIT_NAME:
+		// 	return std::make_shared<Node>(QuteFuzz::TOP_LEVEL_CIRCUIT_NAME);
 
 		case SUBROUTINE_DEFS:
 			return context.new_subroutines_node();
@@ -177,10 +177,10 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 		case BIT:
 			return context.new_bit();
 
-		case FLOAT_LITERAL:
-			return std::make_shared<Float_literal>();
+		case FLOAT:
+			return std::make_shared<Float>();
 
-		case NUMBER:
+		case INTEGER:
 			return std::make_shared<Integer>();
 
 		case GATE_NAME:
@@ -208,11 +208,10 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 		case V: case VDG:
 			return context.new_gate(str, kind, 1, 0, 0);
 
-		case CX : case CY: case CZ: case CNOT:
-		case CH:
+		case CX : case CY: case CZ: case CNOT: case CH: case SWAP:
 			return context.new_gate(str, kind, 2, 0, 0);
 
-		case CRZ:
+		case CRZ: case CRX: case CRY:
 			return context.new_gate(str, kind, 2, 0, 1);
 
 		case CCX: case CSWAP: case TOFFOLI:

@@ -35,7 +35,9 @@ EXTERNAL {
     bit_def = singular_bit_def | register_bit_def;
 }
 
-program       = imports NEWLINE subroutine_defs NEWLINE circuit NEWLINE compiler_call;
+program       = imports NEWLINE subroutine_defs NEWLINE circuit NEWLINE program_footer;
+
+program_footer = compiler_call;
 
 subroutine_defs = (subroutine_circuit NEWLINE subroutine_def_footer)*;
 
@@ -76,6 +78,8 @@ subroutine_op_arg =
     ;
 
 qubit_list  = qubit (", " qubit)*;
+
+float_literal = FLOAT;
 
 float_list = float_literal (", " float_literal)*;
 
@@ -169,4 +173,4 @@ shift_expr:
 primary:
     atom;
 
-atom: NUMBER;
+atom: INTEGER;

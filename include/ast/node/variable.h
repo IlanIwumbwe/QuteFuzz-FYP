@@ -9,7 +9,7 @@ class Variable : public Node {
         using Node::Node;
 
         Variable() :
-            Node("dummy")
+            Node("var_" + std::to_string(node_counter))
         {}
 
     private:

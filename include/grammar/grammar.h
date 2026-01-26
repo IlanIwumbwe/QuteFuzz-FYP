@@ -24,7 +24,7 @@ class Grammar{
 
         void peek();
 
-        std::string dig(const std::string& rule_name) const;
+        std::string dig_to_syntax(const std::string& rule_name) const;
 
         std::shared_ptr<Rule> get_rule_pointer_if_exists(const std::string& name, const U8& scope = NO_SCOPE) const;
 

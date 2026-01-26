@@ -42,7 +42,7 @@ void Grammar::peek(){
 }
 
 /// Return value of given rule name if the value is 1 branch, with 1 syntax term (string or digit) 
-std::string Grammar::dig(const std::string& rule_name) const {
+std::string Grammar::dig_to_syntax(const std::string& rule_name) const {
     std::shared_ptr<Rule> rule_ptr = get_rule_pointer_if_exists(rule_name); 
 
     if(rule_ptr == nullptr) return "";
@@ -54,7 +54,7 @@ std::string Grammar::dig(const std::string& rule_name) const {
 
         if(terms.size() == 1){
             if(is_kind_of_rule(terms[0].get_kind())){
-                return dig(terms[0].get_string());
+                return dig_to_syntax(terms[0].get_string());
             } else {
                 return terms[0].get_syntax();
             }
