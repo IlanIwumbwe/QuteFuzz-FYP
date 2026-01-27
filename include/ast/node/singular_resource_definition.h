@@ -3,7 +3,6 @@
 
 #include <node.h>
 #include <singular_resource.h>
-#include <collection.h>
 #include <resource.h>
 
 class Singular_resource_definition : public Node {
@@ -24,8 +23,15 @@ class Singular_resource_definition : public Node {
             return std::make_shared<Variable>(name);
         }
 
+        void reset(){used = false;}
+
+        void set_used(){used = true;}
+
+        bool is_used(){return used;}
+
     protected:
         Variable name;
+        bool used = false;
 
 };
 
@@ -40,9 +46,9 @@ class Singular_qubit_definition : public Singular_resource_definition {
             Singular_resource_definition(*qubit.get_name())
         {}
 
-        void make_resources(Collection<Qubit>& output, U8& scope) const {
+        void make_resources(Ptr_coll<Qubit>& output, U8& scope) const {
             Singular_qubit singular_qubit(name);
-            output.add(Qubit(singular_qubit, scope));
+            output.push_back(std::make_shared<Qubit>(singular_qubit, scope));
         }
 
     private:
@@ -60,9 +66,9 @@ class Singular_bit_definition : public Singular_resource_definition {
             Singular_resource_definition(*bit.get_name())
         {}
 
-        void make_resources(Collection<Bit>& output, U8& scope) const {
+        void make_resources(Ptr_coll<Bit>& output, U8& scope) const {
             Singular_bit singular_bit(name);
-            output.add(Bit(singular_bit, scope));
+            output.push_back(std::make_shared<Bit>(singular_bit, scope));
         }
 
     private:

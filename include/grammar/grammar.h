@@ -86,7 +86,7 @@ class Grammar{
 
         inline bool is_rule(const std::string& rule_name, const U8& scope){
             for(const auto& ptr : rule_pointers){
-                if((ptr->get_name() == rule_name) && (ptr->get_scope() == scope)){return true;}
+                if((ptr->get_name() == rule_name) && (scope_matches(ptr->get_scope(), scope))){return true;}
             }
 
             return false;

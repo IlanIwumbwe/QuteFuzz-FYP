@@ -60,6 +60,24 @@ class Resource_definition : public Node {
             if(is_register_def()) std::get<Register_resource_definition>(value).increase_size();
         }
 
+        void reset(){
+            std::visit([](auto&& val){
+                val.reset();
+            }, value);
+        }
+
+        bool is_used(){
+            return std::visit([](auto&& val) -> bool {
+                return val.is_used();
+            }, value);
+        }
+
+        void set_used(){
+            std::visit([](auto&& val){
+                val.set_used();
+            }, value);
+        }
+
     private:
         std::variant<Register_resource_definition, Singular_resource_definition> value;
         U8 scope;

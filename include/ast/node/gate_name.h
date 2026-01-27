@@ -2,6 +2,7 @@
 #define GATE_NAME_H
 
 #include <node.h>
+#include <coll.h>
 
 class Gate_name : public Node {
 
@@ -11,11 +12,12 @@ class Gate_name : public Node {
         Gate_name(const std::shared_ptr<Node> parent, const std::shared_ptr<Circuit> current_circuit, const std::optional<Node_constraints>& swarm_testing_gateset) :
             Node("gate_name", GATE_NAME, swarm_testing_gateset)
         {
+            auto pred = [](const auto& elem){ return scope_matches(elem->get_scope(), OWNED_SCOPE); };
 
-            if(current_circuit->num_qubits_of(OWNED_SCOPE) == 0){
+            if(coll_size<Qubit>(current_circuit->get_collection<Qubit>(), pred) == 0){
                 add_constraint(MEASURE_AND_RESET, 0);
 
-                if (current_circuit->num_bits_of(ALL_SCOPES) == 0) {
+                if (current_circuit->get_collection<Bit>().size() == 0) {
                     add_constraint(MEASURE, 0);
                 }
                 /*
@@ -32,7 +34,6 @@ class Gate_name : public Node {
             } else {
                 ERROR("Gate name expected parent to be subroutine_op or gate_op!");
             }
-
         }
 
     private:

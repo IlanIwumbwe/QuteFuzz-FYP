@@ -2,8 +2,12 @@
 #define DAG_H
 
 #include <node.h>
-#include <collection.h>
 #include <qubit_op.h>
+
+class Qubit_definition;
+class Bit_definition;
+class Qubit;
+class Bit;
 
 class Edge {
 
@@ -66,25 +70,11 @@ class Dag {
 
         Dag(const std::shared_ptr<Circuit> circuit);
 
-        inline Collection<Qubit_definition> get_qubit_defs() const {
+        inline Ptr_coll<Qubit_definition> get_qubit_defs() const {
             return qubit_defs;
         }
 
-        inline Collection<Bit_definition> get_bit_defs() const {
-            return bit_defs;
-        }
-
-        inline Collection<Qubit> get_qubits() const {
-            return qubits;
-        }
-
-        inline Collection<Bit> get_bits() const {
-            return bits;
-        }
-
         void add_edge(const Edge& edge, std::optional<int> maybe_dest_node_id, int qubit_id);
-
-        void render_dag(const fs::path& current_circuit_dir);
 
         void extend_dot_string(std::ostringstream& ss);
 
@@ -154,11 +144,8 @@ class Dag {
         std::vector<std::shared_ptr<Node>> subroutine_gates;
         unsigned int sub_pointer = 0;
 
-        Collection<Qubit> qubits;
-        Collection<Qubit_definition> qubit_defs;
-
-        Collection<Bit> bits;
-        Collection<Bit_definition> bit_defs;
+        Ptr_coll<Qubit> qubits;
+        Ptr_coll<Qubit_definition> qubit_defs;
 
         std::shared_ptr<Node> dummy_node = std::make_shared<Node>("");
         std::shared_ptr<Qubit_op> dummy_qubit_op = std::make_shared<Qubit_op>();

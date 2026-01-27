@@ -160,14 +160,6 @@ std::string random_hex_colour(){
     return ss.str();
 }
 
-bool scope_matches(const U8& a, const U8& b){
-    if((a == NO_SCOPE) || (b == NO_SCOPE)){
-        return a == b;
-    } else {
-        return a & b;
-    }
-}
-
 std::string escape_string(const std::string& input) {
     std::string output;
     for (char c : input) {
@@ -197,3 +189,12 @@ void render(std::function<void(std::ostringstream&)> extend_dot_string, const fs
 
     pipe_to_command(command, dot_string.str());
 }
+
+bool scope_matches(const U8& a, const U8& b){
+    if((a == NO_SCOPE) || (b == NO_SCOPE)){
+        return a == b;
+    } else {
+        return a & b;
+    }
+}
+

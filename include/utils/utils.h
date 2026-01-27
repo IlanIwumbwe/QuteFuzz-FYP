@@ -20,6 +20,7 @@
 #include <optional>
 #include <array>
 #include <iomanip>
+#include <ranges>
 #include <functional>
 
 #define BIT64(pos) (1ULL << pos)
@@ -52,6 +53,9 @@
 
 using U64 = uint64_t;
 using U8 = uint8_t;
+
+template<typename T>
+inline constexpr bool always_false_v = false;
 
 namespace fs = std::filesystem;
 
@@ -151,7 +155,16 @@ std::string escape_string(const std::string& input);
 void render(std::function<void(std::ostringstream&)> extend_dot_string, const fs::path& render_path);
 
 template<typename T>
-std::vector<T> multiply_vector(std::vector<T> vec, int mult){
+inline std::vector<T> append_vectors(std::vector<T> vec1, std::vector<T> vec2){
+    std::vector<T> result = vec1;
+
+    result.insert(result.end(), vec2.begin(), vec2.end());
+
+    return result;
+}
+
+template<typename T>
+inline std::vector<T> multiply_vector(std::vector<T> vec, int mult){
     std::vector<T> multiplied_vec;
 
     multiplied_vec.reserve(vec.size() * mult);
@@ -161,15 +174,6 @@ std::vector<T> multiply_vector(std::vector<T> vec, int mult){
     }
 
     return multiplied_vec;
-}
-
-template<typename T>
-std::vector<T> append_vectors(std::vector<T> vec1, std::vector<T> vec2){
-    std::vector<T> result = vec1;
-
-    result.insert(result.end(), vec2.begin(), vec2.end());
-
-    return result;
 }
 
 #endif

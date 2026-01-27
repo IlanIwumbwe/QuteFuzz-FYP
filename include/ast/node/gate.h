@@ -2,7 +2,7 @@
 #define GATE_H
 
 #include <node.h>
-#include <collection.h>
+#include <coll.h>
 
 class Qubit_definition;
 
@@ -26,7 +26,7 @@ class Gate : public Node {
         /// @param str
         /// @param kind
         /// @param qubit_defs
-        Gate(const std::string& str, const Token_kind& kind, const Collection<Qubit_definition>& qubit_defs);
+        Gate(const std::string& str, const Token_kind& kind, const Ptr_coll<Qubit_definition>& qubit_defs);
 
         std::string get_id_as_str(){
             return std::to_string(id);
@@ -47,7 +47,7 @@ class Gate : public Node {
         std::shared_ptr<Qubit_definition> get_current_qubit_def();
 
     private:
-        Collection<Qubit_definition> external_qubit_defs;
+        Ptr_coll<Qubit_definition> external_qubit_defs;
         std::shared_ptr<Qubit_definition> current_qubit_def;
         unsigned int qubit_def_pointer = 0;
 
