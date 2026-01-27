@@ -287,8 +287,6 @@ const std::vector<Token_matcher> TOKEN_RULES = {
     Token_matcher("barrier", BARRIER),
     Token_matcher("FLOAT", FLOAT),
     Token_matcher("INTEGER", INTEGER),
-    // Token_matcher("MAIN_CIRCUIT_NAME", TOP_LEVEL_CIRCUIT_NAME, QuteFuzz::TOP_LEVEL_CIRCUIT_NAME),
-
 
     Token_matcher("LPAREN", SYNTAX, "("),
     Token_matcher("RPAREN", SYNTAX, ")"),
@@ -334,7 +332,7 @@ const std::vector<Token_matcher> TOKEN_RULES = {
     Token_matcher(">", RANGLE_BRACKET),
 };
 
-const std::string FULL_REGEX = 
+const std::string FULL_REGEX =
     R"([a-zA-Z_][a-zA-Z0-9_]*|[0-9]+(\.[0-9]+)?|#[^\n]*|\(\*|\*\)|\".*?\"|\'.*?\'|->|::|\+=|.)";
 
 

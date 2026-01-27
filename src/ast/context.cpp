@@ -21,7 +21,7 @@ void Context::reset(Reset_level l){
             [[fallthrough]];
         }
 
-        case RL_CIRCUIT: 
+        case RL_CIRCUIT:
             nested_depth = control.get_value("NESTED_MAX_DEPTH");
             [[fallthrough]];
 
@@ -317,10 +317,10 @@ std::shared_ptr<Variable> Context::get_current_bit_definition_name(){
 }
 
 /// @brief Any stmt that is nested (if, elif, else) is a nested stmt. Any time such a node is used, reduce nested depth
-/// @param str 
-/// @param kind 
-/// @param parent 
-/// @return 
+/// @param str
+/// @param kind
+/// @param parent
+/// @return
 std::shared_ptr<Nested_stmt> Context::get_nested_stmt(const std::string& str, const Token_kind& kind, std::shared_ptr<Node> parent){
     nested_depth = (nested_depth == 0) ? 0 : nested_depth - 1;
 

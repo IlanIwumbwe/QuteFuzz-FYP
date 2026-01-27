@@ -49,7 +49,7 @@ parameter_def = parameter_def_name " = Parameter('" parameter_def_name "')";
 #               | parameter_expr;
 
 # TODO: radomly pick some parameter_def_name node from the AST
-# parameter_name = some(parameter_def_name);  
+# parameter_name = some(parameter_def_name);
 
 parameter_expr = parameter_name " * " FLOAT
                | parameter_name " + " FLOAT

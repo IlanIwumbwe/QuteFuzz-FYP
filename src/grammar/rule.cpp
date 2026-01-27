@@ -20,8 +20,8 @@ bool Rule::contains_rule(const Token_kind& other_rule){
 
 /// @brief Pick a branch from the rule. The parent node here is the node created for this rule, and it contains a constriant which is used to pick
 /// the correct branch to make the child nodes
-/// @param parent 
-/// @return 
+/// @param parent
+/// @return
 Branch Rule::pick_branch(std::shared_ptr<Node> rule_as_node){
     size_t size = branches.size();
 

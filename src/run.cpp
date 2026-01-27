@@ -82,7 +82,7 @@ void Run::set_grammar(Control& control){
     std::shared_ptr<Grammar> current_grammar = current_generator->get_grammar();
 
     for(auto& exp : control.expected_rules){
-        exp.value = current_grammar->get_rule_pointer_if_exists(exp.rule_name, exp.scope); 
+        exp.value = current_grammar->get_rule_pointer_if_exists(exp.rule_name, exp.scope);
 
         if(exp.value == nullptr){
             throw std::runtime_error("Rule " + exp.rule_name + STR_SCOPE(exp.scope) + "MUST be defined either by default in the meta-grammar, or redefined in the input grammar");
@@ -179,14 +179,14 @@ void Run::loop(){
         } else if (current_command == "render"){
             qf_control.render = !qf_control.render;
             INFO("Rendering " + FLAG_STATUS(qf_control.render));
-    
+
         } else if (current_command == "swarm_testing") {
                 qf_control.swarm_testing = !qf_control.swarm_testing;
                 INFO("Swarm testing mode " + FLAG_STATUS(qf_control.swarm_testing));
 
         } else if (current_command == "mutate"){
             qf_control.run_mutate = !qf_control.run_mutate;
-            INFO("Mutation mode " + FLAG_STATUS(qf_control.run_mutate)); 
+            INFO("Mutation mode " + FLAG_STATUS(qf_control.run_mutate));
 
         } else if (current_command == "quit"){
             current_generator.reset();

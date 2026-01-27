@@ -95,12 +95,12 @@ const std::vector<Token_matcher> TOKEN_RULES = {
 
     {%- else -%}
     Token_matcher("{{ m.pattern }}", {{ k }}),
-    
+
     {%- endif %}
 {% endfor %}
 };
 
-const std::string FULL_REGEX = 
+const std::string FULL_REGEX =
     R"([a-zA-Z_][a-zA-Z0-9_]*|[0-9]+(\.[0-9]+)?|#[^\n]*|\(\*|\*\)|\".*?\"|\'.*?\'|->|::|\+=|.)";
 
 
@@ -137,7 +137,7 @@ class Lexer{
             bool in_multiline_comment = false;
 
             while(std::getline(stream, input)){
-                
+
                 std::sregex_iterator begin(input.begin(), input.end(), full_pattern);
                 std::sregex_iterator end;
 
@@ -157,7 +157,7 @@ class Lexer{
                         in_multiline_comment = false;
                         continue; // Skip this token
                     }
-                    
+
                     if (in_multiline_comment) {
                         continue;
                     }
@@ -165,14 +165,14 @@ class Lexer{
                     if (text[0] == '#') {
                         continue; // Skip the whole comment string
                     }
-                    
+
                     if (isspace(text[0])) {
                         continue;
                     }
 
-                    // find exact qf tokens            
+                    // find exact qf tokens
                     bool found_keyword = false;
-                    
+
                     for(const Token_matcher& tm : TOKEN_RULES) {
                         if (text == tm.pattern) {
                             tokens.push_back(Token{tm.replacement.value_or(text), tm.kind});
@@ -183,7 +183,7 @@ class Lexer{
 
                     if (found_keyword) continue;
 
-                    
+
                     // classify generics
                     if (isalpha(text[0]) || text[0] == '_') {
                         tokens.push_back(Token{text, RULE});

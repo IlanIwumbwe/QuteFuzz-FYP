@@ -81,8 +81,8 @@ register_bit = bit_name "[" bit_index "]";
 
 compiler_call = "pt = pytketTesting() " NEWLINE testing_method;
 
-testing_method = main_circuit_name ".measure_all() " NEWLINE "pt.ks_diff_test(" main_circuit_name COMMA circuit_id RPAREN
-                # | "pt.run_guppy_pytket_diff(" main_circuit_name COMMA circuit_id COMMA LBRACK qubit_def_list RBRACK COMMA LBRACK bit_def_list RBRACK RPAREN NEWLINE
+testing_method = circuit_name ".measure_all() " NEWLINE "pt.ks_diff_test(" circuit_name COMMA circuit_id RPAREN
+                # | "pt.run_guppy_pytket_diff(" circuit_name COMMA circuit_id COMMA LBRACK qubit_def_list RBRACK COMMA LBRACK bit_def_list RBRACK RPAREN NEWLINE
                 ;
 
 qubit_def_list = qubit_def_size (COMMA SPACE qubit_def_size)*;

@@ -30,7 +30,7 @@ To run fuzzer on its own, setup cmake build dir using
 
 then running `build/fuzzer`.
 
-3. Use `converage html` to generate html for coverage report 
+3. Use `converage html` to generate html for coverage report
 
 See `dev` for dev-specific docs
 

@@ -4,8 +4,8 @@
     Rules:
     - use `subroutines` node to encapsulate subroutine circuits
     - `qubit_def` rule MUST be defined in at least INTERNAL or EXTERNAL scope (defining in both is fine)
-    - the node `body` MUST always be used to define the circuit body. All compound statements must be inside the 
-        `compound_stmts` node, then the `compound_stmts` node is used within body 
+    - the node `body` MUST always be used to define the circuit body. All compound statements must be inside the
+        `compound_stmts` node, then the `compound_stmts` node is used within body
 *)
 
 # default config

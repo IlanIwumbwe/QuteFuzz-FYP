@@ -35,7 +35,7 @@ class Nested_stmt: public Node {
 
         void print(std::ostream& stream) const override {
             // stream << indentation_str;
-            
+
             if (kind != IF_STMT) stream << indentation_str;
 
             for(const std::shared_ptr<Node>& child : children){

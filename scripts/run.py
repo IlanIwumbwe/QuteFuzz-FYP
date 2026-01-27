@@ -21,6 +21,7 @@ TIMEOUT = 300
 DEFAULT_NUM_TESTS = 1
 CPU_COUNT = os.cpu_count()
 
+
 class Color:
     GREEN = "\033[92m"
     RED = "\033[91m"
@@ -343,8 +344,7 @@ def main():
         log(f"Testing grammar: {grammar}", Color.BLUE)
         log(f"{'=' * 60}", Color.BLUE)
 
-        Check_grammar(
-            run_timestamp, args.num_tests, grammar, args.seed, mode, args.plot).check()
+        Check_grammar(run_timestamp, args.num_tests, grammar, args.seed, mode, args.plot).check()
 
 
 if __name__ == "__main__":
