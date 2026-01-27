@@ -6,7 +6,7 @@
 #include <sstream>
 #include <result.h>
 
-/* 
+/*
 	node kinds
 */
 #include <circuit.h>
@@ -182,7 +182,7 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 		case GATE_NAME:
 			return std::make_shared<Gate_name>(parent, context.get_current_circuit(), swarm_testing_gateset);
 
-		case SUBROUTINE: 
+		case SUBROUTINE:
 			return context.nn_gate_from_subroutine();
 
 		case SUBROUTINE_OP_ARGS:

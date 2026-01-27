@@ -25,7 +25,7 @@ Gate::Gate(const std::string& str, const Token_kind& kind, const Ptr_coll<Qubit_
 }
 
 std::shared_ptr<Qubit_definition> Gate::get_next_qubit_def(){
-    last_qubit_def = get_next_from_coll(qubit_defs, EXTERNAL_SCOPE); 
+    last_qubit_def = get_next_from_coll(qubit_defs, EXTERNAL_SCOPE);
     return last_qubit_def;
 }
 
@@ -37,7 +37,7 @@ unsigned int Gate::get_num_external_qubits(){
     return num_external_qubits;
 }
 
-unsigned int Gate::get_num_external_qubit_defs() const { 
+unsigned int Gate::get_num_external_qubit_defs() const {
     auto pred = [](const auto& elem){return scope_matches(elem->get_scope(), EXTERNAL_SCOPE);};
-    return coll_size<Qubit_definition>(qubit_defs, pred); 
+    return coll_size<Qubit_definition>(qubit_defs, pred);
 }

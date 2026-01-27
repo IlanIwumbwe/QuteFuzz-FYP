@@ -121,7 +121,7 @@ class Circuit : public Node {
                 elem->reset();
             }
         }
-            
+
         unsigned int make_register_resource_definition(U8& scope, Resource_kind rk, unsigned int max_size, unsigned int& total_definitions);
 
         unsigned int make_singular_resource_definition(U8& scope,  Resource_kind rk, unsigned int& total_definitions);

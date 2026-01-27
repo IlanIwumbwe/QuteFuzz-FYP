@@ -125,6 +125,7 @@ enum Token_kind {
         Tokens that aren't special rule types, but rather, are syntax used in the language
         Add new syntax below
     */
+    NEXT,
     SEPARATOR,
     RULE_START,
     RULE_APPEND,
@@ -287,6 +288,7 @@ const std::vector<Token_matcher> TOKEN_RULES = {
     Token_matcher("FLOAT", FLOAT),
     Token_matcher("INTEGER", INTEGER),
 
+    Token_matcher("NEXT", NEXT),
     Token_matcher("LPAREN", SYNTAX, "("),
     Token_matcher("RPAREN", SYNTAX, ")"),
     Token_matcher("LBRACK", SYNTAX, "["),

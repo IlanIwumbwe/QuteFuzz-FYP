@@ -243,7 +243,8 @@ class Check_grammar:
             combined_output = stdout + stderr
 
             if any(
-                err in combined_output for err in ["SyntaxError", "IndentationError", "NameError", "TypeError"]
+                err in combined_output
+                for err in ["SyntaxError", "IndentationError", "NameError", "TypeError"]
             ):
                 result.had_fuzzer_error = True
                 result.reason = combined_output
