@@ -9,15 +9,15 @@ Gate::Gate(const std::string& str, const Token_kind& kind, unsigned int qubits, 
     num_floats(floats)
 {}
 
-Gate::Gate(const std::string& str, const Token_kind& kind, const Collection<Qubit_definition>& qubit_defs) :
+Gate::Gate(const std::string& str, const Token_kind& kind, const Ptr_coll<Qubit_definition>& qubit_defs) :
     Node(str, kind)
 {
     assert(kind == SUBROUTINE);
 
     // filter out external qubit defs
     for(const auto& qubit_def : qubit_defs){
-        if(qubit_def->get_scope() & EXTERNAL_SCOPE){
-            external_qubit_defs.add(*qubit_def);
+        if(scope_matches(qubit_def->get_scope(), EXTERNAL_SCOPE)){
+            external_qubit_defs.push_back(qubit_def);
             num_external_qubits += qubit_def->get_size()->get_num();
         }
     }

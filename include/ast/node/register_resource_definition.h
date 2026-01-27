@@ -5,7 +5,6 @@
 #include <register_resource.h>
 #include <variable.h>
 #include <integer.h>
-#include <collection.h>
 #include <resource.h>
 
 class Register_resource_definition : public Node {
@@ -35,9 +34,16 @@ class Register_resource_definition : public Node {
             size++;
         }
 
+        void reset(){used = false;}
+
+        void set_used(){used = true;}
+
+        bool is_used(){return used;}
+
     protected:
         Variable name;
         Integer size;
+        bool used = false;
 };
 
 class Register_qubit_definition : public Register_resource_definition {
@@ -57,12 +63,11 @@ class Register_qubit_definition : public Register_resource_definition {
             )
         {}
 
-        void make_resources(Collection<Qubit>& output, const U8& scope) const {
+        void make_resources(Ptr_coll<Qubit>& output, const U8& scope) const {
 
             for(size_t i = 0; i < (size_t)size.get_num(); i++){
                 Register_qubit reg_qubit(name, Integer(std::to_string(i)));
-
-                output.add(Qubit(reg_qubit, scope));
+                output.push_back(std::make_shared<Qubit>(reg_qubit, scope));
             }
         }
 
@@ -87,11 +92,10 @@ class Register_bit_definition : public Register_resource_definition {
             )
         {}
 
-        void make_resources(Collection<Bit>& output, const U8& scope) const {
+        void make_resources(Ptr_coll<Bit>& output, const U8& scope) const {
             for(size_t i = 0; i < (size_t)size.get_num(); i++){
                 Register_bit reg_bit(name, Integer(std::to_string(i)));
-
-                output.add(Bit(reg_bit, scope));
+                output.push_back(std::make_shared<Bit>(reg_bit, scope));
             }
         }
 

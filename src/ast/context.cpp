@@ -12,7 +12,6 @@ void Context::reset(Reset_level l){
         case RL_PROGRAM: {
             subroutine_counter = 0;
             Node::node_counter = 0;
-            can_copy_dag = false;
 
             circuits.clear();
 
@@ -26,8 +25,8 @@ void Context::reset(Reset_level l){
             [[fallthrough]];
 
         case RL_QUBIT_OP: {
-            get_current_circuit()->qubit_flag_reset();
-            get_current_circuit()->bit_flag_reset();
+            get_current_circuit()->reset<Qubit>();
+            get_current_circuit()->reset<Bit>();
 
             current_port = 0;
         }
@@ -46,11 +45,16 @@ bool Context::can_apply_as_subroutine(const std::shared_ptr<Circuit> circuit){
         return false;
     }
 
-    unsigned int num_dest_qubits = current_circuit->num_qubits_of(ALL_SCOPES);
-    unsigned int num_dest_bits = current_circuit->num_bits_of(ALL_SCOPES);
+    auto pred = [](const auto& elem){ return scope_matches(elem->get_scope(), EXTERNAL_SCOPE); };
 
-    unsigned int num_circuit_qubits = circuit->num_qubits_of(EXTERNAL_SCOPE);
-    unsigned int num_circuit_bits = circuit->num_bits_of(EXTERNAL_SCOPE);
+    auto qubits = current_circuit->get_collection<Qubit>();
+    auto bits = current_circuit->get_collection<Bit>();
+
+    unsigned int num_dest_qubits = qubits.size();
+    unsigned int num_dest_bits = bits.size();
+
+    unsigned int num_circuit_qubits = coll_size<Qubit>(qubits, pred);
+    unsigned int num_circuit_bits = coll_size<Bit>(bits, pred);
 
     bool has_enough_qubits = (num_circuit_qubits >= 1 && num_circuit_qubits <= num_dest_qubits);
     bool has_enough_bits = num_circuit_bits <= num_dest_bits;
@@ -74,21 +78,13 @@ void Context::set_can_apply_subroutines(){
     get_current_circuit()->set_can_apply_subroutines(false);
 }
 
-unsigned int Context::get_max_external_qubits(){
-    size_t res = QuteFuzz::MIN_QUBITS;
-
-    for(const std::shared_ptr<Circuit>& circuit : circuits){
-        res = std::max(res, circuit->num_qubits_of(EXTERNAL_SCOPE));
-    }
-
-    return res;
-}
-
-unsigned int Context::get_max_external_bits(){
+template<typename T>
+unsigned int Context::get_max_external_resources(){
     size_t res = QuteFuzz::MIN_BITS;
+    auto pred = [](const auto& elem){ return scope_matches(elem->get_scope(), EXTERNAL_SCOPE); };
 
     for(const std::shared_ptr<Circuit>& circuit : circuits){
-        res = std::max(res, circuit->num_bits_of(EXTERNAL_SCOPE));
+        res = std::max(res, coll_size<T>(circuit->get_collection<T>(), pred));
     }
 
     return res;
@@ -137,17 +133,16 @@ std::shared_ptr<Circuit> Context::get_random_circuit(){
 
 
 std::shared_ptr<Qubit> Context::get_random_qubit(){
-    auto random_qubit = get_current_circuit()->get_random_qubit(ALL_SCOPES);
+    auto random_qubit = get_random_from_coll(get_current_circuit()->get_collection<Qubit>(), ALL_SCOPES);
 
     random_qubit->extend_flow_path(current.get<Qubit_op>(), current_port++);
 
     current.set<Qubit>(random_qubit);
-
     return random_qubit;
 }
 
 std::shared_ptr<Bit> Context::get_random_bit(){
-    auto random_bit = get_current_circuit()->get_random_bit(ALL_SCOPES);
+    auto random_bit = get_random_from_coll(get_current_circuit()->get_collection<Bit>(), ALL_SCOPES);
     current.set<Bit>(random_bit);
     return random_bit;
 }
@@ -178,7 +173,6 @@ std::shared_ptr<Circuit> Context::nn_circuit(){
         // current_circuit_owner = QuteFuzz::TOP_LEVEL_CIRCUIT_NAME;
         current_circuit = std::make_shared<Circuit>(QuteFuzz::TOP_LEVEL_CIRCUIT_NAME, control, false);
         subroutine_counter = 0;
-        can_copy_dag = genome.has_value();
     }
 
     circuits.push_back(current_circuit);
@@ -189,14 +183,7 @@ std::shared_ptr<Circuit> Context::nn_circuit(){
 std::shared_ptr<Qubit_defs> Context::nn_qubit_defs(U8& scope){
     std::shared_ptr<Circuit> current_circuit = get_current_circuit();
 
-    unsigned int num_defs;
-
-    if(can_copy_dag){
-        num_defs = current_circuit->make_resource_definitions(genome->dag, scope, RK_QUBIT);
-
-    } else {
-        num_defs = current_circuit->make_resource_definitions(scope, RK_QUBIT, control);
-    }
+    unsigned int num_defs = current_circuit->make_resource_definitions(scope, RK_QUBIT, control);
 
     return std::make_shared<Qubit_defs>(num_defs);
 }
@@ -204,14 +191,7 @@ std::shared_ptr<Qubit_defs> Context::nn_qubit_defs(U8& scope){
 std::shared_ptr<Bit_defs> Context::nn_bit_defs(U8& scope){
     std::shared_ptr<Circuit> current_circuit = get_current_circuit();
 
-    unsigned int num_defs;
-
-    if(can_copy_dag){
-        num_defs = current_circuit->make_resource_definitions(genome->dag, scope, RK_BIT);
-    } else {
-        num_defs = current_circuit->make_resource_definitions(scope, RK_BIT, control);
-    }
-
+    unsigned int num_defs = current_circuit->make_resource_definitions(scope, RK_BIT, control);
     return std::make_shared<Bit_defs>(num_defs);
 }
 
@@ -226,13 +206,13 @@ std::shared_ptr<Subroutine_op_arg> Context::nn_subroutine_op_arg(){
 }
 
 std::shared_ptr<Qubit_definition> Context::nn_qubit_definition(const U8& scope){
-    auto qubit_def = get_current_circuit()->get_next_qubit_def(scope);
+    auto qubit_def = get_next_from_coll(get_current_circuit()->get_collection<Qubit_definition>(), scope);
     current.set<Qubit_definition>(qubit_def);
     return qubit_def;
 }
 
 std::shared_ptr<Bit_definition> Context::nn_bit_definition(const U8& scope){
-    auto bit_def = get_current_circuit()->get_next_bit_def(scope);
+    auto bit_def = get_next_from_coll(get_current_circuit()->get_collection<Bit_definition>(), scope);
     current.set<Bit_definition>(bit_def);
     return bit_def;
 }
@@ -255,7 +235,7 @@ std::shared_ptr<Gate> Context::nn_gate_from_subroutine(){
         5. give this gate to the current qubit op
     */
     std::shared_ptr<Circuit> subroutine_circuit = get_random_circuit();
-    auto qubit_defs = subroutine_circuit->get_qubit_defs();
+    auto qubit_defs = subroutine_circuit->get_collection<Qubit_definition>();
     auto gate_name = subroutine_circuit->get_owner();
     
     auto gate = std::make_shared<Gate>(gate_name, SUBROUTINE, qubit_defs);
@@ -278,25 +258,12 @@ std::shared_ptr<Integer> Context::nn_circuit_id() {
 /// @return
 std::shared_ptr<Nested_stmt> Context::nn_nested_stmt(const std::string& str, const Token_kind& kind, std::shared_ptr<Node> parent){
     reset(RL_QUBIT_OP);
-
     nested_depth = (nested_depth == 0) ? 0 : nested_depth - 1;
-
-    if(can_copy_dag){
-        return std::make_shared<Nested_stmt>(str, kind, parent->get_next_child_target());
-
-    } else {
-        return std::make_shared<Nested_stmt>(str, kind);
-    }
+    return std::make_shared<Nested_stmt>(str, kind);
 }
 
 std::shared_ptr<Compound_stmt> Context::nn_compound_stmt(std::shared_ptr<Node> parent){
-
-    if(can_copy_dag){
-        return Compound_stmt::from_num_qubit_ops(parent->get_next_child_target());
-    } else {
-        return Compound_stmt::from_nested_depth(nested_depth);
-    }
-
+    return Compound_stmt::from_nested_depth(nested_depth);
 }
 
 std::shared_ptr<Compound_stmts> Context::nn_compound_stmts(std::shared_ptr<Node> parent){
@@ -308,18 +275,9 @@ std::shared_ptr<Compound_stmts> Context::nn_compound_stmts(std::shared_ptr<Node>
 
     if(*parent == BODY){
         set_can_apply_subroutines();
-
-        if(can_copy_dag){
-            parent->make_partition(genome.value().dag.n_qubit_ops(), 1);
-        }
     }
 
-    if(can_copy_dag){
-        return Compound_stmts::from_num_qubit_ops(parent->get_next_child_target());
-
-    } else {
-        return Compound_stmts::from_num_compound_stmts(QuteFuzz::WILDCARD_MAX);
-    }
+    return Compound_stmts::from_num_compound_stmts(QuteFuzz::WILDCARD_MAX);
 }
 
 std::shared_ptr<Subroutine_defs> Context::nn_subroutines(){
@@ -339,15 +297,13 @@ std::shared_ptr<Subroutine_defs> Context::nn_subroutines(){
 std::shared_ptr<Qubit_op> Context::nn_qubit_op(){
     reset(RL_QUBIT_OP);
 
-    auto qubit_op = can_copy_dag ? genome.value().dag.get_next_node() : std::make_shared<Qubit_op>(get_current_circuit());
+    auto qubit_op = std::make_shared<Qubit_op>(get_current_circuit());
     current.set<Qubit_op>(qubit_op);
     return qubit_op;
 }
 
 std::shared_ptr<Parameter_def> Context::nn_parameter_def(){
     auto def = std::make_shared<Parameter_def>();
-    
     current.set<Parameter_def>(def);
-
     return def;
 }

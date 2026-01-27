@@ -4,7 +4,6 @@
 #include <node.h>
 #include <resource_definition.h>
 #include <resource.h>
-#include <collection.h>
 #include <params.h>
 
 /*
@@ -101,89 +100,33 @@ class Circuit : public Node {
             return can_apply_subroutines;
         }
 
-        /// Cannnot sum internal and external targets because rule to generate using the target may not be in grammar
-        inline size_t num_qubits_of(const U8& scope) const {
-            return qubits.get_num_of(scope);
-        }
-
-        /// Cannnot sum internal and external targets because rule to generate using the target may not be in grammar
-        inline size_t num_bits_of(const U8& scope) const {
-            return bits.get_num_of(scope);
-        }
-
-        inline size_t num_qubit_defs_of(const U8& scope) const {
-            return qubit_defs.get_num_of(scope);
-        }
-
-        inline size_t num_bit_defs_of(const U8& scope) const {
-            return bit_defs.get_num_of(scope);
-        }
-
-        void qubit_flag_reset(){
-            qubits.reset();
-        }
-
-        void bit_flag_reset(){
-            bits.reset();
-        }
-
-        void qubit_def_pointer_reset(){
-            qubit_def_pointer = 0;
-        }
-
-        void bit_def_pointer_reset(){
-            bit_def_pointer = 0;
-        }
-
-        inline std::shared_ptr<Qubit> qubit_at(size_t index){
-            if(index < qubits.get_num_of(ALL_SCOPES)){
-                return qubits.at(index);
-            } else {
-                return dummy_qubit;
+        template<typename T>
+        inline Ptr_coll<T> get_collection() const {
+            if constexpr (std::is_same_v<T, Qubit>) {
+				return qubits;
+			} else if constexpr (std::is_same_v<T, Qubit_definition>) {
+				return qubit_defs;
+			} else if constexpr (std::is_same_v<T, Bit>) {
+				return bits;
+			} else if constexpr (std::is_same_v<T, Bit_definition>) {
+				return bit_defs;
+			} else {
+                static_assert(always_false_v<T>, "Given type cannot be in a ptr collection used in `CIRCUIT`");
             }
         }
 
-        inline std::shared_ptr<Bit> bit_at(size_t index){
-            if(index < bits.get_num_of(ALL_SCOPES)){
-                return bits.at(index);
-            } else {
-                return dummy_bit;
+        template<typename T>
+        inline void reset(){
+            for (const auto& elem : get_collection<T>()){
+                elem->reset();
             }
         }
+            
+        unsigned int make_register_resource_definition(U8& scope, Resource_kind rk, unsigned int max_size, unsigned int& total_definitions);
 
-        inline Collection<Qubit> get_qubits(){
-            return qubits;
-        }
+        unsigned int make_singular_resource_definition(U8& scope,  Resource_kind rk, unsigned int& total_definitions);
 
-        inline Collection<Bit> get_bits(){
-            return bits;
-        }
-
-        inline Collection<Qubit_definition> get_qubit_defs(){
-            return qubit_defs;
-        }
-
-        inline Collection<Bit_definition> get_bit_defs(){
-            return bit_defs;
-        }
-
-        std::shared_ptr<Qubit> get_random_qubit(const U8& scope);
-
-        std::shared_ptr<Bit> get_random_bit(const U8& scope);
-
-        std::shared_ptr<Qubit_definition> get_next_qubit_def(const U8& scope);
-
-        std::shared_ptr<Qubit_definition> get_next_qubit_def_discard(const U8& scope);
-
-        std::shared_ptr<Bit_definition> get_next_bit_def(const U8& scope);
-
-        unsigned int make_register_resource_definition(unsigned int max_size, U8& scope, Resource_kind rk, unsigned int& total_definitions);
-
-        unsigned int make_singular_resource_definition(U8& scope, Resource_kind rk, unsigned int& total_definitions);
-
-        unsigned int make_resource_definitions(U8& scope, Resource_kind rk, Control& control, bool discard_defs = false);
-
-        unsigned int make_resource_definitions(const Dag& dag, const U8& scope, Resource_kind rk, bool discard_defs = false);
+        unsigned int make_resource_definitions(U8& scope, Resource_kind rk, Control& control);
 
         void print_info() const;
 
@@ -201,22 +144,19 @@ class Circuit : public Node {
 
         bool can_apply_subroutines = false;
 
-        Collection<Qubit> qubits;
-        Collection<Qubit_definition> qubit_defs;
-        Collection<Qubit_definition> qubit_defs_discard;
-
-        Collection<Bit> bits;
-        Collection<Bit_definition> bit_defs;
+        Ptr_coll<Qubit> qubits;
+        Ptr_coll<Qubit_definition> qubit_defs;
+        Ptr_coll<Bit> bits;
+        Ptr_coll<Bit_definition> bit_defs;
 
         unsigned int qubit_def_pointer = 0;
         unsigned int qubit_def_discard_pointer = 0;
         unsigned int bit_def_pointer = 0;
 
-        std::shared_ptr<Qubit> dummy_qubit = std::make_shared<Qubit>();
-        std::shared_ptr<Bit> dummy_bit = std::make_shared<Bit>();
-
-        std::shared_ptr<Qubit_definition> dummy_qubit_def = std::make_shared<Qubit_definition>();
-        std::shared_ptr<Bit_definition> dummy_bit_def = std::make_shared<Bit_definition>();
+        // std::shared_ptr<Qubit> dummy_qubit = std::make_shared<Qubit>();
+        // std::shared_ptr<Bit> dummy_bit = std::make_shared<Bit>();
+        // std::shared_ptr<Qubit_definition> dummy_qubit_def = std::make_shared<Qubit_definition>();
+        // std::shared_ptr<Bit_definition> dummy_bit_def = std::make_shared<Bit_definition>();
 };
 
 

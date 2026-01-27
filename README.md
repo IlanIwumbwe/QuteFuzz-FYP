@@ -34,4 +34,5 @@ then running `build/fuzzer`.
 
 See `dev` for dev-specific docs
 
-*Only GCC/clang compilers due to some use of GCC pragmas*
+- *Only GCC/clang compilers due to some use of GCC pragmas*
+- *>= C++20 required*

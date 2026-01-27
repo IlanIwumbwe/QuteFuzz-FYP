@@ -21,9 +21,6 @@ enum Reset_level {
 	RL_QUBIT_OP,
 };
 
-template<typename T>
-inline constexpr bool always_false_v = false;
-
 struct Current_nodes {
 
 	public:
@@ -170,9 +167,8 @@ struct Context {
 
 		void set_can_apply_subroutines();
 
-		unsigned int get_max_external_qubits();
-
-		unsigned int get_max_external_bits();
+		template<typename T>
+		unsigned int get_max_external_resources();
 
 		std::shared_ptr<Circuit> get_current_circuit() const;
 
@@ -259,7 +255,6 @@ struct Context {
 		Current_nodes current;
 		Dummy_nodes dummies;
 		std::optional<Genome> genome;
-		bool can_copy_dag;
 
 		std::vector<std::shared_ptr<Circuit>> circuits;
 		
