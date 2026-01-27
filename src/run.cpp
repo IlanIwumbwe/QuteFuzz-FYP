@@ -73,7 +73,7 @@ void Run::set_grammar(Control& control){
 
     setup_output_dir(grammar_name);
 
-    control.ext = current_generator->get_grammar()->dig("EXTENSION");
+    control.ext = current_generator->get_grammar()->dig_to_syntax("EXTENSION");
 
     if(control.ext == ""){
         throw std::runtime_error(ANNOT("Grammar " + grammar_name + " does not define an extension"));
@@ -82,7 +82,7 @@ void Run::set_grammar(Control& control){
     std::shared_ptr<Grammar> current_grammar = current_generator->get_grammar();
 
     for(auto& exp : control.expected_rules){
-        exp.value = current_grammar->get_rule_pointer_if_exists(exp.rule_name, exp.scope); 
+        exp.value = current_grammar->get_rule_pointer_if_exists(exp.rule_name, exp.scope);
 
         if(exp.value == nullptr){
             throw std::runtime_error("Rule " + exp.rule_name + STR_SCOPE(exp.scope) + "MUST be defined either by default in the meta-grammar, or redefined in the input grammar");
@@ -91,9 +91,9 @@ void Run::set_grammar(Control& control){
 
     for(auto& exp : control.expected_values){
         if(exp.cd == CLAMP_UP){
-            exp.value = std::max(safe_stoul(current_grammar->dig(exp.rule_name), exp.dflt), exp.dflt);
+            exp.value = std::max(safe_stoul(current_grammar->dig_to_syntax(exp.rule_name), exp.dflt), exp.dflt);
         } else {
-            exp.value = std::min(safe_stoul(current_grammar->dig(exp.rule_name), exp.dflt), exp.dflt);
+            exp.value = std::min(safe_stoul(current_grammar->dig_to_syntax(exp.rule_name), exp.dflt), exp.dflt);
         }
     }
 
@@ -179,14 +179,14 @@ void Run::loop(){
         } else if (current_command == "render"){
             qf_control.render = !qf_control.render;
             INFO("Rendering " + FLAG_STATUS(qf_control.render));
-    
+
         } else if (current_command == "swarm_testing") {
                 qf_control.swarm_testing = !qf_control.swarm_testing;
                 INFO("Swarm testing mode " + FLAG_STATUS(qf_control.swarm_testing));
 
         } else if (current_command == "mutate"){
             qf_control.run_mutate = !qf_control.run_mutate;
-            INFO("Mutation mode " + FLAG_STATUS(qf_control.run_mutate)); 
+            INFO("Mutation mode " + FLAG_STATUS(qf_control.run_mutate));
 
         } else if (current_command == "quit"){
             current_generator.reset();
@@ -203,7 +203,7 @@ void Run::loop(){
             } else if ((n_programs = safe_stoul(current_command, 1))){
                 remove_all_in_dir(current_output_dir);
 
-                for(size_t build_counter = 0; build_counter < n_programs.value_or(0); build_counter++){
+                for(size_t build_counter = 0; build_counter < n_programs; build_counter++){
                     unsigned int seed = random_uint(UINT32_MAX);
 
                     std::ofstream stream = get_stream(current_output_dir, "regression_seed.txt");

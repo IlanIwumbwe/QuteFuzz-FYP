@@ -7,11 +7,11 @@ omit =
     */latex/*
     */render/*
     */plotting/*
-    
-    */__init__.py   
+
+    */__init__.py
     */test/*
     */tests/*
     */legacy/*
     */deprecated/*
-    
+
     */setup.py

@@ -58,6 +58,7 @@ namespace fs = std::filesystem;
 class Rule;
 
 enum Clamp_dir {
+    NO_CLAMP,
     CLAMP_DOWN,
     CLAMP_UP
 };
@@ -70,7 +71,7 @@ struct Expected{
     T dflt;
     Clamp_dir cd;
 
-    Expected(std::string _rule_name, T _dflt, Clamp_dir _cd) :
+    Expected(std::string _rule_name, T _dflt, Clamp_dir _cd = NO_CLAMP) :
         rule_name(_rule_name),
         scope(NO_SCOPE),
         value(_dflt),
@@ -106,7 +107,7 @@ struct Control {
         throw std::runtime_error("Expected value " + name + " not found in control");
     }
 
-    std::shared_ptr<Rule> get_rule(std::string name, U8 scope) const {
+    std::shared_ptr<Rule> get_rule(std::string name, U8 scope = NO_SCOPE) const {
         for(auto& exp : expected_rules){
             if((exp.rule_name == name) && (exp.scope == scope)){
                 return exp.value;
@@ -126,8 +127,6 @@ void init_global_seed(Control& control, std::optional<unsigned int> user_seed = 
 std::mt19937& rng();
 
 unsigned int random_uint(unsigned int max = UINT32_MAX, unsigned int min = 0);
-
-float random_float(float max, float min = 0.0);
 
 unsigned int safe_stoul(const std::string& str, unsigned int default_value);
 

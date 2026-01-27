@@ -28,9 +28,9 @@ echo ">>> 4. Preparing Local Dependencies (qir-runner)..."
 if [ ! -d "libs/qir-runner" ]; then
     mkdir -p libs
     git clone https://github.com/CQCL/qir-runner.git libs/qir-runner
-    
+
     # Pre-build the Rust binary (Keep this if qir-runner requires manual compilation)
-    # If qir-runner uses standard maturin/setuptools-rust, uv might be able to 
+    # If qir-runner uses standard maturin/setuptools-rust, uv might be able to
     # build it automatically without this step, but keeping it is safer for now.
     pushd libs/qir-runner
     cargo build --release

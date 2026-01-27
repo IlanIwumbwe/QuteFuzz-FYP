@@ -10,10 +10,10 @@
 
 struct Generator {
 
-    const std::shared_ptr<Mutation_rule> RULE = 
+    const std::shared_ptr<Mutation_rule> RULE =
         std::make_shared<Commutation_rule>(QuteFuzz::Z_BASIS) +
         std::make_shared<Commutation_rule>(QuteFuzz::Y_BASIS) +
-        std::make_shared<Commutation_rule>(QuteFuzz::X_BASIS);  
+        std::make_shared<Commutation_rule>(QuteFuzz::X_BASIS);
 
     public:
 

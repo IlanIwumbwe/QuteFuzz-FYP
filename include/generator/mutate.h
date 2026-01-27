@@ -72,7 +72,7 @@ class Gate_fission : public Mutation_rule {
 };
 
 inline std::shared_ptr<Mutation_rule> operator+(
-    std::shared_ptr<Mutation_rule> lhs, 
+    std::shared_ptr<Mutation_rule> lhs,
     std::shared_ptr<Mutation_rule> rhs
 ) {
     auto seq = std::make_shared<Sequence_rule>();

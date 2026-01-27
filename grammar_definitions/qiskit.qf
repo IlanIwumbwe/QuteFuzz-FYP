@@ -6,18 +6,18 @@ NESTED_MAX_DEPTH = 5;
 if_stmt =
     'with ' circuit_name '.if_test((' bit COMMA branch_condition ')) as else_' indentation_depth ':' NEWLINE INDENT compound_stmts DEDENT elif_stmt
     | 'with ' circuit_name '.if_test((' bit COMMA branch_condition ')) as else_' indentation_depth ':' NEWLINE INDENT compound_stmts DEDENT (else_stmt)?;
-# Elif statements seems impossible for qiskit?
 elif_stmt = ;
 else_stmt =
     'with else_' indentation_depth ':' NEWLINE INDENT compound_stmts DEDENT;
 
 branch_condition = 1 | 0;
 
-gate_name += s
-        | sdg
-        | t
-        | tdg;
+gate_name += s | sdg | t | tdg | u | u1 | u2 | u3 | measure;
 
+u = "u";
+u1 = "u1";
+u2 = "u2";
+u3 = "u3";
 x = "x";
 y = "y";
 z = "z";
@@ -38,11 +38,28 @@ s = "s";
 measure = "measure";
 
 # Redefine base program structure to fit Qiskit
-program = imports NEWLINE subroutine_defs NEWLINE circuit NEWLINE compiler_call;
+program = imports NEWLINE subroutine_defs NEWLINE circuit NEWLINE program_footer;
+
+parameter_defs = (parameter_def NEWLINE)*;
+
+parameter_def = parameter_def_name " = Parameter('" parameter_def_name "')";
+
+# Modify float_literal to optionally use parameters
+# float_literal += parameter_name
+#               | parameter_expr;
+
+# TODO: radomly pick some parameter_def_name node from the AST
+# parameter_name = some(parameter_def_name);
+
+parameter_expr = parameter_name " * " FLOAT
+               | parameter_name " + " FLOAT
+               | parameter_name " / " FLOAT
+               | parameter_name " - " FLOAT
+               | FLOAT " * " parameter_name
+               ;
 
 circuit = circuit_def_header NEWLINE body NEWLINE;
 
-# TODO: Bits sometimes doesn't generate
 body = EXTERNAL::qubit_defs EXTERNAL::bit_defs NEWLINE compound_stmts;
 
 subroutine_def_footer = circuit_name " = " circuit_name ".to_gate()" NEWLINE;
@@ -75,7 +92,7 @@ EXTERNAL {
 }
 
 imports =
-    "from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister" NEWLINE
+    "from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, Parameter" NEWLINE
     "from qiskit.circuit.library import standard_gates" NEWLINE
     swarm_testing_imports NEWLINE
     "from diff_testing.qiskit import qiskitTesting" NEWLINE
@@ -83,7 +100,7 @@ imports =
 
 compound_stmt =
     qubit_op
-    | if_stmt # TODO: fix this
+    | if_stmt
     ;
 
 # Redefine compound_stmt and related rules
@@ -109,6 +126,17 @@ singular_bit = bit_name "[0]";
 
 register_bit = bit_name "[" bit_index "]";
 
+# program_footer = parameter_binding NEWLINE compiler_call;
+
 compiler_call = "qt = qiskitTesting()" NEWLINE testing_method;
 
 testing_method = "qt.ks_diff_test(main_circuit" COMMA circuit_id RPAREN NEWLINE;
+
+parameter_binding = circuit_name " = " circuit_name ".bind_parameters({" parameter_bind_list "})";
+
+# parameter_bind_list = parameter_bind ("," parameter_bind)*;
+
+# TODO: find each node of that kind by iterating over the AST and performing the token concat given
+# parameter_bind_list = for_each(parameter_def_name, ": " FLOAT ", ");
+
+parameter_bind = parameter_name ": " FLOAT;

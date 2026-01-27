@@ -41,20 +41,20 @@ void Grammar::peek(){
 
 }
 
-/// Return value of given rule name if the value is 1 branch, with 1 syntax term (string or digit) 
-std::string Grammar::dig(const std::string& rule_name) const {
-    std::shared_ptr<Rule> rule_ptr = get_rule_pointer_if_exists(rule_name); 
+/// Return value of given rule name if the value is 1 branch, with 1 syntax term (string or digit)
+std::string Grammar::dig_to_syntax(const std::string& rule_name) const {
+    std::shared_ptr<Rule> rule_ptr = get_rule_pointer_if_exists(rule_name);
 
     if(rule_ptr == nullptr) return "";
 
     auto branches = rule_ptr->get_branches();
-    
+
     if (branches.size() == 1){
         auto terms = branches[0].get_terms();
 
         if(terms.size() == 1){
             if(is_kind_of_rule(terms[0].get_kind())){
-                return dig(terms[0].get_string());
+                return dig_to_syntax(terms[0].get_string());
             } else {
                 return terms[0].get_syntax();
             }
@@ -67,9 +67,9 @@ std::string Grammar::dig(const std::string& rule_name) const {
 }
 
 /// @brief Only return rule pointer if already exists
-/// @param name 
-/// @param scope 
-/// @return 
+/// @param name
+/// @param scope
+/// @return
 std::shared_ptr<Rule> Grammar::get_rule_pointer_if_exists(const std::string& name, const U8& scope) const {
 
     for(const auto& rp : rule_pointers){
@@ -80,9 +80,9 @@ std::shared_ptr<Rule> Grammar::get_rule_pointer_if_exists(const std::string& nam
 }
 
 /// @brief If rule pointer doesn't exist, create it first then return
-/// @param token 
-/// @param scope 
-/// @return 
+/// @param token
+/// @param scope
+/// @return
 std::shared_ptr<Rule> Grammar::get_rule_pointer(const Token& token, const U8& scope){
     auto dummy = std::make_shared<Rule>(token, scope);
 

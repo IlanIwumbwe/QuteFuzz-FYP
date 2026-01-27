@@ -8,6 +8,7 @@
 #include <fstream>
 
 #include <result.h>
+#include <params.h>
 
 enum Token_kind {
     _EOF = 0,
@@ -39,9 +40,12 @@ enum Token_kind {
     U2,
     CNOT,
     CH,
+    CRX,
+    CRY,
     CRZ,
     U3,
     CSWAP,
+    SWAP,
     TOFFOLI,
     U,
     PHASED_X,
@@ -64,7 +68,7 @@ enum Token_kind {
     CIRCUIT_NAME,
     FLOAT_LIST,
     FLOAT_LITERAL,
-    MAIN_CIRCUIT_NAME,
+    PARAMETER_DEF_NAME,
     QUBIT_DEF_NAME,
     BIT_DEF_NAME,
     QUBIT,
@@ -99,13 +103,14 @@ enum Token_kind {
     INVERSION,
     EXPRESSION,
     COMPARE_OP_BITWISE_OR_PAIR,
-    NUMBER,
     SUBROUTINE_OP_ARGS,
     GATE_OP_ARGS,
     SUBROUTINE_OP_ARG,
     COMPOUND_STMT,
     COMPOUND_STMTS,
     INDENTATION_DEPTH,
+    INTEGER,
+    FLOAT,
     /*
         these aren't used in the lexer, but in the AST node creation. maybe will be used in the lexer if these rules are needed later
     */
@@ -134,7 +139,6 @@ enum Token_kind {
     RBRACE,
     LANGLE_BRACKET,
     RANGLE_BRACKET,
-    INTEGER,
     ZERO_OR_MORE,
     ONE_OR_MORE,
     OPTIONAL,
@@ -161,8 +165,8 @@ struct Token{
     }
 
     friend std::ostream& operator<<(std::ostream& stream, const Token t){
-        if(t.kind == SYNTAX) std::cout << kind_as_str(t.kind) << " " << std::quoted(t.value);
-        else std::cout << kind_as_str(t.kind) << " " << t.value;
+        if(t.kind == SYNTAX) std::cout << t.kind << " " << std::quoted(t.value);
+        else std::cout << t.kind << " " << t.value;
 
         return stream;
     }
@@ -208,7 +212,6 @@ const std::vector<Token_matcher> TOKEN_RULES = {
     Token_matcher("circuit_name", CIRCUIT_NAME),
     Token_matcher("float_list", FLOAT_LIST),
     Token_matcher("float_literal", FLOAT_LITERAL),
-    Token_matcher("main_circuit_name", MAIN_CIRCUIT_NAME),
     Token_matcher("qubit_def_name", QUBIT_DEF_NAME),
     Token_matcher("bit_def_name", BIT_DEF_NAME),
     Token_matcher("qubit", QUBIT),
@@ -233,9 +236,6 @@ const std::vector<Token_matcher> TOKEN_RULES = {
     Token_matcher("bit_index", BIT_INDEX),
     Token_matcher("subroutine", SUBROUTINE),
     Token_matcher("circuit_id", CIRCUIT_ID),
-    Token_matcher("INDENT", INDENT),
-    Token_matcher("DEDENT", DEDENT),
-    Token_matcher("NUMBER", NUMBER),
     Token_matcher("if_stmt", IF_STMT),
     Token_matcher("else_stmt", ELSE_STMT),
     Token_matcher("elif_stmt", ELIF_STMT),
@@ -277,26 +277,32 @@ const std::vector<Token_matcher> TOKEN_RULES = {
     Token_matcher("cnot", CNOT),
     Token_matcher("ch", CH),
     Token_matcher("crz", CRZ),
+    Token_matcher("crx", CRX),
+    Token_matcher("cry", CRY),
     Token_matcher("u3", U3),
     Token_matcher("cswap", CSWAP),
+    Token_matcher("swap", SWAP),
     Token_matcher("toffoli", TOFFOLI),
     Token_matcher("u", U),
     Token_matcher("barrier", BARRIER),
+    Token_matcher("FLOAT", FLOAT),
+    Token_matcher("INTEGER", INTEGER),
 
-    Token_matcher("LPAREN", SYNTAX, std::make_optional<std::string>("(")),
-    Token_matcher("RPAREN", SYNTAX, std::make_optional<std::string>(")")),
-    Token_matcher("LBRACK", SYNTAX, std::make_optional<std::string>("[")),
-    Token_matcher("RBRACK", SYNTAX, std::make_optional<std::string>("]")),
-    Token_matcher("LBRACE", SYNTAX, std::make_optional<std::string>("{")),
-    Token_matcher("RBRACE", SYNTAX, std::make_optional<std::string>("}")),
-    Token_matcher("COMMA", SYNTAX, std::make_optional<std::string>(",")),
-    Token_matcher("SPACE", SYNTAX, std::make_optional<std::string>(" ")),
-    Token_matcher("DOT", SYNTAX, std::make_optional<std::string>(".")),
-    Token_matcher("SINGLE_QUOTE", SYNTAX, std::make_optional<std::string>("\'")),
-    Token_matcher("DOUBLE_QUOTE", SYNTAX, std::make_optional<std::string>("\"")),
-    Token_matcher("EQUALS", SYNTAX, std::make_optional<std::string>("=")),
-    Token_matcher("NEWLINE", SYNTAX, std::make_optional<std::string>("\n")),
-
+    Token_matcher("LPAREN", SYNTAX, "("),
+    Token_matcher("RPAREN", SYNTAX, ")"),
+    Token_matcher("LBRACK", SYNTAX, "["),
+    Token_matcher("RBRACK", SYNTAX, "]"),
+    Token_matcher("LBRACE", SYNTAX, "{"),
+    Token_matcher("RBRACE", SYNTAX, "}"),
+    Token_matcher("COMMA", SYNTAX, ","),
+    Token_matcher("SPACE", SYNTAX, " "),
+    Token_matcher("DOT", SYNTAX, "."),
+    Token_matcher("SINGLE_QUOTE", SYNTAX, "\'"),
+    Token_matcher("DOUBLE_QUOTE", SYNTAX, "\""),
+    Token_matcher("EQUALS", SYNTAX, "="),
+    Token_matcher("NEWLINE", SYNTAX, "\n"),
+    Token_matcher("INDENT", INDENT),
+    Token_matcher("DEDENT", DEDENT),
     Token_matcher("EXTERNAL", EXTERNAL),
     Token_matcher("INTERNAL", INTERNAL),
     Token_matcher("OWNED", OWNED),
@@ -326,7 +332,7 @@ const std::vector<Token_matcher> TOKEN_RULES = {
     Token_matcher(">", RANGLE_BRACKET),
 };
 
-const std::string FULL_REGEX = 
+const std::string FULL_REGEX =
     R"([a-zA-Z_][a-zA-Z0-9_]*|[0-9]+(\.[0-9]+)?|#[^\n]*|\(\*|\*\)|\".*?\"|\'.*?\'|->|::|\+=|.)";
 
 

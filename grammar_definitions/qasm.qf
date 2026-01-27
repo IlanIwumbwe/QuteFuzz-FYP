@@ -52,7 +52,7 @@ compound_stmt = qubit_op;
 
 subroutine_circuit = "gate " circuit_name " " EXTERNAL::qubit_defs " { " NEWLINE subroutine_body "}";
 
-subroutine_op = subroutine " " qubit_list 
+subroutine_op = subroutine " " qubit_list
 
 # 3. GATES
 # --------
@@ -96,5 +96,5 @@ u2 = "u2";
 u3 = "u3";
 
 
-# NOTE: QASM 2.0 does not support if/else blocks in the standard body easily 
+# NOTE: QASM 2.0 does not support if/else blocks in the standard body easily
 # without opaque definitions, so we rely on flattened gate lists here.

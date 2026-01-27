@@ -12,7 +12,7 @@ void Lexer::lex(){
     bool in_multiline_comment = false;
 
     while(std::getline(stream, input)){
-        
+
         std::sregex_iterator begin(input.begin(), input.end(), full_pattern);
         std::sregex_iterator end;
 
@@ -32,7 +32,7 @@ void Lexer::lex(){
                 in_multiline_comment = false;
                 continue; // Skip this token
             }
-            
+
             if (in_multiline_comment) {
                 continue;
             }
@@ -40,14 +40,14 @@ void Lexer::lex(){
             if (text[0] == '#') {
                 continue; // Skip the whole comment string
             }
-            
+
             if (isspace(text[0])) {
                 continue;
             }
 
-            // find exact qf tokens            
+            // find exact qf tokens
             bool found_keyword = false;
-            
+
             for(const Token_matcher& tm : TOKEN_RULES) {
                 if (text == tm.pattern) {
                     tokens.push_back(Token{tm.replacement.value_or(text), tm.kind});
@@ -58,7 +58,7 @@ void Lexer::lex(){
 
             if (found_keyword) continue;
 
-            
+
             // classify generics
             if (isalpha(text[0]) || text[0] == '_') {
                 tokens.push_back(Token{text, RULE});

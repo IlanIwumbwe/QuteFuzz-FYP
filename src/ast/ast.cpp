@@ -27,9 +27,9 @@ std::string Node::indentation_tracker = "";
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-enum"
 /// @brief Return node version of the term. Use the term's parent node if needed
-/// @param parent 
-/// @param term 
-/// @return 
+/// @param parent
+/// @param term
+/// @return
 std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Term& term){
 
 	if(parent == nullptr){
@@ -93,9 +93,6 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 
 		case CIRCUIT_ID:
 			return context.get_circuit_id();
-
-		case MAIN_CIRCUIT_NAME:
-			return std::make_shared<Variable>(QuteFuzz::TOP_LEVEL_CIRCUIT_NAME);
 
 		case SUBROUTINE_DEFS:
 			return context.new_subroutines_node();
@@ -177,10 +174,10 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 		case BIT:
 			return context.new_bit();
 
-		case FLOAT_LITERAL:
-			return std::make_shared<Float_literal>();
+		case FLOAT:
+			return std::make_shared<Float>();
 
-		case NUMBER:
+		case INTEGER:
 			return std::make_shared<Integer>();
 
 		case GATE_NAME:
@@ -208,11 +205,10 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 		case V: case VDG:
 			return context.new_gate(str, kind, 1, 0, 0);
 
-		case CX : case CY: case CZ: case CNOT:
-		case CH:
+		case CX : case CY: case CZ: case CNOT: case CH: case SWAP:
 			return context.new_gate(str, kind, 2, 0, 0);
 
-		case CRZ:
+		case CRZ: case CRX: case CRY:
 			return context.new_gate(str, kind, 2, 0, 1);
 
 		case CCX: case CSWAP: case TOFFOLI:
@@ -251,11 +247,11 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 
 void Ast::write_branch(std::shared_ptr<Node> term_as_node, const Term& term, const Control& control, unsigned int depth){
 	/*
-		there's no guarantee of the term as node kind being the same as term kind, for good reason. 
-		if there's a term `circuit_name` the kind of that term is `CIRCUIT_NAME` but the node that 
+		there's no guarantee of the term as node kind being the same as term kind, for good reason.
+		if there's a term `circuit_name` the kind of that term is `CIRCUIT_NAME` but the node that
 		is retuned is a `SYNTAX` node which contains the circuit name
 
-		same goes for `QUBIT_DEF` term where the node could be `REGISTER_QUBIT_DEF` or `SINGULAR_QUBIT_DEF`	
+		same goes for `QUBIT_DEF` term where the node could be `REGISTER_QUBIT_DEF` or `SINGULAR_QUBIT_DEF`
 	*/
 	if (depth >= QuteFuzz::RECURSION_LIMIT){
 		throw std::runtime_error(ANNOT("Recursion limit reached when writing branch for term: " + term_as_node->get_content()));

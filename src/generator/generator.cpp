@@ -31,6 +31,10 @@ void Generator::ast_to_program(fs::path output_dir, const Control& control, unsi
     rng().seed(seed);
 
     std::ofstream stream;
+
+    stream = get_stream(output_dir, "circuit_seed.txt");
+    stream << seed << std::endl;
+
     stream = get_stream(output_dir, "prog" + control.ext);
 
     std::optional<Node_constraints> gateset;
