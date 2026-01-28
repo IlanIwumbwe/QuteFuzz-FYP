@@ -41,6 +41,20 @@ parameter_defs = (parameter_def NEWLINE)*;
 
 parameter_def = parameter_def_name " = Parameter('" parameter_def_name "')";
 
+(*
+    One easy way to implement getting the name of a parameter would be
+    1. define a special node for `parameter_name`
+    2. when this term is reached, get a random parameter def and get it's name
+
+    I do not want to have to define a special rule for this. A more general way would be to define 2 functions
+    i. gets some random node corresponding to given rule
+    ii. gets specific child node of that rule
+
+    combine these 2 implement parameter_name.
+
+    I think this can also be used to remove other special rules
+*)
+
 # Modify float_literal to optionally use parameters
 # float_literal += parameter_name
 #               | parameter_expr;
@@ -130,19 +144,18 @@ singular_bit = bit_name "[0]";
 
 register_bit = bit_name "[" bit_index "]";
 
-# program_footer = parameter_binding NEWLINE compiler_call;
-
 compiler_call = "qt = qiskitTesting()" NEWLINE testing_method;
 
 testing_method = "qt.ks_diff_test(main_circuit" COMMA circuit_id RPAREN NEWLINE;
 
-parameter_binding = circuit_name " = " circuit_name ".bind_parameters({" parameter_bind_list "})";
+(*
+    TODO: may need to make the semantics of `NEXT` more complex
+*)
+
+# program_footer = parameter_binding NEWLINE compiler_call;
+
+# parameter_binding = circuit_name " = " circuit_name ".bind_parameters({" parameter_bind_list "})";
 
 # parameter_bind_list = parameter_bind ("," parameter_bind)*;
 
-# TODO: find each node of that kind by iterating over the AST and performing the token concat given
-# parameter_bind_list = for_each(parameter_def_name, ": " FLOAT ", ");
-
-next_parameter = NEXT(parameter_def_name);
-
-parameter_bind = next_parameter ": " FLOAT;
+# parameter_bind = NEXT<parameter_def_name> ": " FLOAT;
