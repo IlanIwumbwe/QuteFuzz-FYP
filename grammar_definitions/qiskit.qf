@@ -41,6 +41,20 @@ parameter_defs = (parameter_def NEWLINE)*;
 
 parameter_def = parameter_def_name " = Parameter('" parameter_def_name "')";
 
+(*
+    One easy way to implement getting the name of a parameter would be
+    1. define a special node for `parameter_name`
+    2. when this term is reached, get a random parameter def and get it's name
+
+    I do not want to have to define a special rule for this. A more general way would be to define 2 functions
+    i. gets some random node corresponding to given rule
+    ii. gets specific child node of that rule
+
+    combine these 2 implement parameter_name.
+
+    I think this can also be used to remove other special rules
+*)
+
 # Modify float_literal to optionally use parameters
 # float_literal += parameter_name
 #               | parameter_expr;
