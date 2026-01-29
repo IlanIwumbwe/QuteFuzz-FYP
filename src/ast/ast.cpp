@@ -80,9 +80,6 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 		// TODO: throw an error saying that they have tried to get the name of a node that could not have been defined at this point in the AST
 		assert(node != nullptr);
 
-		std::cout << *node << std::endl;
-		std::cout << "============ DEF =========" << std::endl;
-
 		return node->find(NAME);
 	}
 

@@ -1,5 +1,10 @@
 # qasm.qf
 
+(*
+    TODO:
+    - figure out why programs don't use the subroutines they generate
+*)
+
 EXTENSION = ".qasm";
 MAX_NUM_QUBITS = 10;
 

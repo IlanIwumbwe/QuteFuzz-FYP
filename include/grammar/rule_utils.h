@@ -4,10 +4,10 @@
 #include <utils.h>
 
 enum class Scope {
-    NONE = BIT32(0),
-    GLOB = BIT32(1),
-    EXT = BIT32(2),
-    INT = BIT32(3),
+    NONE = 0,
+    GLOB = BIT32(0),
+    EXT = BIT32(1),
+    INT = BIT32(2),
 };
 
 ENABLE_BITMASK_OPERATORS(Scope)
@@ -23,9 +23,9 @@ ENABLE_BITMASK_OPERATORS(Scope)
 #define scope_matches(a, b) ((a & b) != Scope::NONE)
 
 enum class Meta_func {
-    NONE = BIT32(0),
-    NEXT = BIT32(1),
-    NAME = BIT32(3),
+    NONE = 0,
+    NEXT = BIT32(0),
+    NAME = BIT32(1),
 };
 
 #define STR_META_FUNC(mf) ( \
