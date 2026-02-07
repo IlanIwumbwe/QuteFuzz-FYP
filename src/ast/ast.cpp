@@ -11,53 +11,32 @@
 */
 #include <circuit.h>
 #include <gate.h>
-#include <compound_stmts.h>
 #include <float_literal.h>
-#include <float_list.h>
-#include <resource_list.h>
-#include <subroutine_op_args.h>
-#include <resource_defs.h>
 #include <qubit_op.h>
-#include <gate_op_args.h>
-#include <subroutine_defs.h>
 #include <compound_stmt.h>
+#include <resource.h>
 #include <disjunction.h>
 #include <conjunction.h>
 #include <compare_op_bitwise_or_pair_child.h>
 #include <expression.h>
 #include <gate_name.h>
 #include <parameter_def.h>
-#include <name.h>
+#include <variable.h>
 
 std::string Node::indentation_tracker = "";
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-enum"
-/// @brief Return node version of the term. Use the term's parent node if needed
-/// @param parent
-/// @param term
-/// @return
-std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Term& term){
+std::variant<std::shared_ptr<Node>, Term> Ast::make_child(const std::shared_ptr<Node> parent, const Term& term){
 
 	Scope scope = term.get_scope();
 	Meta_func meta_func = term.get_meta_func();
 
 	std::string str = term.get_string();
-	Token_kind kind = term.get_kind();
-
-	if (kind == PARAMETER_DEF){
-		std::cout << *term.get_rule() << std::endl;
-	}
+	Token_kind kind = term.get_node_kind();
 
 	if(parent == nullptr){
 		throw std::runtime_error(ANNOT("Node must have a parent!"));
-	}
-
-	/**
-	* 			SYNTAX TERM
-	*/
-	if(term.is_syntax()){
-		return std::make_shared<Node>(term.get_syntax());
 	}
 
 	/**
@@ -88,10 +67,27 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 	*/
 	switch(kind){
 
-		case NAME: {
-			auto maybe_name = parent->find(NAME);
-			return (maybe_name == nullptr) ? std::make_shared<Name>() : maybe_name;
-		}
+		case SYNTAX:
+			return std::make_shared<Node>(str);
+
+		case NAME:
+
+			return parent->get_name();
+
+		case SIZE:
+			return parent->get_size();
+
+		case INDEX:
+			return parent->get_index();
+
+		case FLOAT:
+			return std::make_shared<Float>();
+
+		case INTEGER:
+			return std::make_shared<UInt>();
+
+		case CIRCUIT_NAME:
+			return std::make_shared<Variable>(context.get_current_circuit()->get_owner());
 
 		case INDENT:
 			Node::indentation_tracker += "\t";
@@ -105,7 +101,7 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 			return dummy;
 
 		case INDENTATION_DEPTH:
-			return std::make_shared<Integer>(Node::indentation_tracker.size());
+			return std::make_shared<UInt>(Node::indentation_tracker.size());
 
 		case CIRCUIT:
 			return context.nn_circuit();
@@ -113,14 +109,11 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 		case BODY:
 			return std::make_shared<Node>(str, kind);
 
-		case COMPOUND_STMTS:
-			return context.nn_compound_stmts(parent);
-
 		case COMPOUND_STMT:
-			return context.nn_compound_stmt(parent);
+			return context.nn_compound_stmt();
 
 		case IF_STMT: case ELIF_STMT: case ELSE_STMT:
-			return context.nn_nested_stmt(str, kind, parent);
+			return context.nn_nested_stmt(str, kind);
 
 		case DISJUNCTION:
 			return std::make_shared<Disjunction>();
@@ -138,131 +131,69 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 			return context.nn_subroutines();
 
 		case QUBIT_OP:
+			context.reset(Reset_level::RL_QUBIT_OP);
 			return context.nn_qubit_op();
 
-		case CIRCUIT_NAME:
-			return std::make_shared<Variable>(context.get_current_circuit()->get_owner());
-
-		case QUBIT_DEF_SIZE:
-			return context.get_current_node_size<Qubit_definition>();
-
-		case QUBIT_DEF_NAME:
-			return context.get_current_node_name<Qubit_definition>();
-
-		case QUBIT_DEFS:
-			return context.nn_qubit_defs(scope);
-
-		case BIT_DEFS:
-			return context.nn_bit_defs(scope);
-
-		case QUBIT_DEF:
-			return context.nn_qubit_definition(scope);
-
-		case BIT_DEF:
-			return context.nn_bit_definition(scope);
-
-		case BIT_DEF_SIZE:
-			return context.get_current_node_size<Bit_definition>();
-
-		case BIT_DEF_NAME:
-			return context.get_current_node_name<Bit_definition>();
-
-		case QUBIT_LIST: {
-			auto current_gate = context.get_current_node<Gate>();
-
-			unsigned int num_qubits;
-
-			if(*parent == SUBROUTINE_OP_ARG){
-				num_qubits = current_gate->get_last_qubit_def()->get_size()->get_num();
+		case SUBROUTINE_OP:
+			// redirect AST to gate op if current circuit cannot apply subroutines
+			if(context.current_circuit_uses_subroutines()){
+				return std::make_shared<Node>(str, kind);
 			} else {
-				num_qubits = current_gate->get_num_external_qubits();
+				return Term(control.get_rule("gate_op"), GATE_OP, Meta_func::NONE);
 			}
 
-			context.reset(RL_QUBIT_OP);
-
-			return std::make_shared<Qubit_list>(num_qubits);
-		}
-
-		case BIT_LIST:
-			context.reset(RL_QUBIT_OP);
-			return std::make_shared<Bit_list>(context.get_current_node<Gate>()->get_num_external_bits());
-
-		case FLOAT_LIST:
-			return std::make_shared<Float_list>(context.get_current_node<Gate>()->get_num_floats());
-
-		case QUBIT_INDEX:
-			return context.get_current_node_index<Qubit>();
-
-		case QUBIT_NAME:
-			return context.get_current_node_name<Qubit>();
-
+		/*
+			create new node pointer to prevent modification of resources / resource defs in circuit collection
+		*/
 		case QUBIT:
-			return context.get_random_qubit();
-
-		case BIT_INDEX:
-			return context.get_current_node_index<Bit>();
-
-		case BIT_NAME:
-			return context.get_current_node_name<Bit>();
+			return context.get_random_resource(Resource_kind::QUBIT)->clone();
 
 		case BIT:
-			return context.get_random_bit();
+			return context.get_random_resource(Resource_kind::BIT)->clone();
 
-		case FLOAT:
-			return std::make_shared<Float>();
+		case REGISTER_QUBIT: case REGISTER_BIT: case SINGULAR_QUBIT: case SINGULAR_BIT: {
+			parent->remove_constraints(); // parent is one of the nodes above, remove constraints as just used to reach here
 
-		case INTEGER:
-			return std::make_shared<Integer>();
+			auto res = std::dynamic_pointer_cast<Resource>(parent);
 
-		case GATE_NAME:
-			return std::make_shared<Gate_name>(parent, context.get_current_circuit(), swarm_testing_gateset);
+			if(res == nullptr){
+				WARNING("Parent of resource expected to be of `Resource` type! Returning dummy");
+				return dummy;
+			} else {
+				return res->clone();
+			}
+		}
+
+		case QUBIT_DEF:
+			return context.nn_resource_def(scope, Resource_kind::QUBIT);
+
+		case BIT_DEF:
+			return context.nn_resource_def(scope, Resource_kind::BIT);
+
+		case REGISTER_QUBIT_DEF: case REGISTER_BIT_DEF: case SINGULAR_QUBIT_DEF: case SINGULAR_BIT_DEF: {
+			parent->remove_constraints(); // parent is one of the nodes above, remove constraints as just used to reach here
+
+			auto def = std::dynamic_pointer_cast<Resource_def>(parent);
+
+			if(def == nullptr){
+				WARNING("Parent of resource def expected to be of `Resource def` type! Returning dummy");
+				return dummy;
+			} else {
+				return def->clone();
+			}
+		}
 
 		case SUBROUTINE:
 			return context.nn_gate_from_subroutine();
 
-		case SUBROUTINE_OP_ARGS:
-			return std::make_shared<Subroutine_op_args>(context.get_current_node<Gate>()->get_num_external_qubit_defs());
+		case GATE_NAME:
+			return std::make_shared<Gate_name>(context.get_current_circuit());
 
-		case SUBROUTINE_OP_ARG:
-			return context.nn_subroutine_op_arg();
-
-		case H: case X: case Y: case Z: case T:
-		case TDG: case S: case SDG: case PROJECT_Z: case MEASURE_AND_RESET:
-		case V: case VDG:
-			return context.nn_gate(str, kind, 1, 0, 0);
-
-		case CX : case CY: case CZ: case CNOT: case CH: case SWAP:
-			return context.nn_gate(str, kind, 2, 0, 0);
-
-		case CRZ: case CRX: case CRY:
-			return context.nn_gate(str, kind, 2, 0, 1);
-
-		case CCX: case CSWAP: case TOFFOLI:
-			return context.nn_gate(str, kind, 3, 0, 0);
-
-		case U1: case RX: case RY: case RZ:
-			return context.nn_gate(str, kind, 1, 0, 1);
-
-		case U2: case PHASED_X:
-			return context.nn_gate(str, kind, 1, 0, 2);
-
-		case U3: case U:
-			return context.nn_gate(str, kind, 1, 0, 3);
-
-		case MEASURE:
-			return context.nn_gate(str, kind, 1, 1, 0);
-
-		case BARRIER: {
-			std::shared_ptr<Circuit> current_circuit = context.get_current_circuit();
-
-			unsigned int n_qubits = std::min(QuteFuzz::WILDCARD_MAX, (unsigned int)current_circuit->get_collection<Qubit>().size());
-			unsigned int random_barrier_width = random_uint(n_qubits, 1);
-
-			return context.nn_gate(str, kind, random_barrier_width, 0, 0);
-		}
-
-		case GATE_OP_ARGS:
-			return std::make_shared<Gate_op_args>(context.get_current_node<Gate>());
+		case H: case X: case Y: case Z: case T: case TDG: case S: case SDG: case PROJECT_Z:
+		case MEASURE_AND_RESET: case V: case VDG: case CX : case CY: case CZ: case CNOT:
+		case CH: case SWAP: case CRZ: case CRX: case CRY: case CCX: case CSWAP: case TOFFOLI:
+		case U1: case RX: case RY: case RZ: case U2: case PHASED_X: case U3: case U: case MEASURE:
+			return context.nn_gate(str, kind);
 
 		case PARAMETER_DEF:
 			return context.nn_parameter_def();
@@ -270,73 +201,91 @@ std::shared_ptr<Node> Ast::get_node(const std::shared_ptr<Node> parent, const Te
 		default:
 			return std::make_shared<Node>(str, kind);
 	}
-
 }
 #pragma GCC diagnostic pop
 
-void Ast::write_branch(std::shared_ptr<Node> term_as_node, const Term& term, const Control& control, unsigned int depth){
-	/*
-		there's no guarantee of the term as node kind being the same as term kind, for good reason.
-		if there's a term `circuit_name` the kind of that term is `CIRCUIT_NAME` but the node that
-		is retuned is a `SYNTAX` node which contains the circuit name
 
-		same goes for `QUBIT_DEF` term where the node could be `REGISTER_QUBIT_DEF` or `SINGULAR_QUBIT_DEF`
-	*/
+void Ast::term_branch_to_child_nodes(std::shared_ptr<Node> parent, const Term& term, unsigned int depth){
 	if (depth >= QuteFuzz::RECURSION_LIMIT){
-		throw std::runtime_error(ANNOT("Recursion limit reached when writing branch for term: " + term_as_node->get_content()));
+		ERROR(ANNOT("Recursion limit reached when writing branch for term: " + parent->get_str()));
+	}
+
+	if (control.step){
+		std::cout << "parent node: " << parent->get_name() << " term: " << term << std::endl;
+		root->print_ast("");
+		getchar();
 	}
 
 	if(term.is_rule()){
 
-		Branch branch = term.get_rule()->pick_branch(term_as_node);
+		Branch branch = term.get_rule()->pick_branch(parent);
 
 		for(const Term& child_term : branch){
+			Term_constraint constraint = child_term.get_constaint();
+			unsigned int max = constraint.resolve(std::ref(context));
 
-			std::shared_ptr<Node> child_node = get_node(term_as_node, child_term);
+			#if 0
+			if (constraint.get_term_constraint_kind() == Term_constraint_kind::DYNAMIC_MAX){
+				std::cout << child_term << std::endl;
+				std::cout << "Resolves: " << max << std::endl;
+			}
+			#endif
 
-			term_as_node->add_child(child_node);
+			// add as many children to the parent node as specified by the term constraint
+			// then use the term to get the next branch to write, where this new child node is the parent
+			for (unsigned int i = 0; i < max; i++){
+				auto maybe_child = make_child(parent, child_term);
 
-			if(child_node->size()) continue;
+				if(std::holds_alternative<Term>(maybe_child)){
+					// redirect
+					INFO("Redirecting ....");
 
-			write_branch(child_node, child_term, control, depth + 1);
+					term_branch_to_child_nodes(parent, std::get<Term>(maybe_child), depth);
+				} else {
+					auto child_node = std::get<std::shared_ptr<Node>>(maybe_child);
+
+					parent->add_child(child_node);
+					term_branch_to_child_nodes(child_node, child_term, depth + 1);
+				}
+
+			}
 		}
 	}
 
 	// done
-	term_as_node->transition_to_done();
+	parent->transition_to_done();
 }
 
-Result<Node> Ast::build(const std::optional<Node_constraints>& _swarm_testing_gateset, const Control& control){
+Result<Node> Ast::build(){
 	Result<Node> res;
 
 	if(entry == nullptr){
 		res.set_error("Entry point not set");
 
 	} else {
-		swarm_testing_gateset = _swarm_testing_gateset;
-
-		context.set_control(control);
 		context.reset(RL_PROGRAM);
 
 		Token_kind entry_token_kind = entry->get_token().kind;
-
 		Term entry_term(entry, entry_token_kind, Meta_func::NONE);
 
-		root = get_node(std::make_shared<Node>(""), entry_term);
+		auto maybe_root = make_child(std::make_shared<Node>("", RULE), entry_term); // need this call such that the entry node also calls the factory function
 
-		write_branch(root, entry_term, control);
+		if(std::holds_alternative<std::shared_ptr<Node>>(maybe_root)){
+			root = std::get<std::shared_ptr<Node>>(maybe_root);
+			term_branch_to_child_nodes(root, entry_term);
 
-		std::shared_ptr<Circuit> main_circuit_circuit = context.get_current_circuit();
-		dag = std::make_shared<Dag>(main_circuit_circuit);
+			context.print_circuit_info();
 
-		// context.print_circuit_info();
+			res.set_ok(*root);
 
-		res.set_ok(*root);
+		} else {
+			res.set_error("Root was redirected, AST cannot be built");
+		}
 	}
 
 	return res;
 }
 
-Genome Ast::genome(){
-	return Genome{.dag = *dag, .dag_score = dag->score()};
-}
+// Genome Ast::genome(){
+// 	return Genome{.dag = *dag, .dag_score = dag->score()};
+// }

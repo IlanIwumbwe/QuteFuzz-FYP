@@ -3,17 +3,21 @@
 
 #include <optional>
 #include <algorithm>
-#include <term.h>
+#include <qf_term.h>
 #include <grammar.h>
 #include <node.h>
 #include <context.h>
 #include <dag.h>
+#include <supported_gates.h>
 
-struct Genome;
+// struct Genome;
 
 class Ast{
     public:
-        Ast(){}
+        Ast(const Control& _control) :
+            context(_control),
+            control(_control)
+        {}
 
         ~Ast() = default;
 
@@ -23,22 +27,22 @@ class Ast{
 
         inline bool entry_set(){return entry != nullptr;}
 
-        void write_branch(std::shared_ptr<Node> term_as_node, const Term& term, const Control& control, unsigned int depth = 0);
+        void term_branch_to_child_nodes(std::shared_ptr<Node> parent, const Term& term, unsigned int depth = 0);
 
-        std::shared_ptr<Node> get_node(const std::shared_ptr<Node> parent, const Term& term);
+        std::variant<std::shared_ptr<Node>, Term> make_child(const std::shared_ptr<Node> parent, const Term& term);
 
-        Result<Node> build(const std::optional<Node_constraints>& swarm_testing_gateset, const Control& control);
+        Result<Node> build();
 
-        Genome genome();
+        // Genome genome();
 
         inline void print_ast(){
             root->print_ast("");
         }
 
-        inline void render_dag(const fs::path& current_circuit_dir){
-            render([dag = dag](std::ostringstream& dot_string){dag->extend_dot_string(dot_string);},
-                current_circuit_dir / "dag.png");
-        }
+        // inline void render_dag(const fs::path& current_circuit_dir){
+        //     render([dag = dag](std::ostringstream& dot_string){dag->extend_dot_string(dot_string);},
+        //         current_circuit_dir / "dag.png");
+        // }
 
         inline void render_ast(const fs::path& current_circuit_dir){
             render([root = root](std::ostringstream& dot_string){root->extend_dot_string(dot_string);},
@@ -49,9 +53,10 @@ class Ast{
         std::shared_ptr<Rule> entry = nullptr;
         std::shared_ptr<Node> dummy = std::make_shared<Node>("");
         std::shared_ptr<Node> root;
-        std::shared_ptr<Dag> dag;
-        std::optional<Node_constraints> swarm_testing_gateset = std::nullopt;
+        // std::shared_ptr<Dag> dag;
+        std::vector<Gate_info> gateset;
         Context context;
+        const Control& control;
 };
 
 #endif

@@ -36,6 +36,7 @@ struct Control {
     bool render;
     bool swarm_testing;
     bool run_mutate;
+    bool step;
     std::string ext;
 
     std::vector<Expected<unsigned int>> expected_values;
@@ -58,7 +59,7 @@ struct Control {
             }
         }
 
-        throw std::runtime_error("Expected rule " + name + STR_SCOPE(scope) + " not found in control");
+        throw std::runtime_error("Expected rule " + name + " " + STR_SCOPE(scope) + " not found in control");
     }
 };
 

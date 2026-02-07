@@ -1,21 +1,19 @@
-#include "../../include/grammar/term.h"
+#include "../../include/grammar/qf_term.h"
 #include <rule.h>
 
-Term::Term(const std::shared_ptr<Rule> rule, const Token_kind& _kind, const Meta_func& _meta_func, unsigned int _branch_nesting_depth){
-    value = rule;
+Term::Term(const std::shared_ptr<Rule> rule, const Token_kind& _kind, const Meta_func& _meta_func){
+    value = std::weak_ptr<Rule>(rule),
     kind = _kind;
     meta_func = _meta_func;
-    branch_nesting_depth = _branch_nesting_depth;
 }
 
-Term::Term(const std::string& syntax, const Token_kind& _kind, unsigned int _branch_nesting_depth){
+Term::Term(const std::string& syntax, const Token_kind& _kind){
     value = syntax;
     kind = _kind;
-    branch_nesting_depth = _branch_nesting_depth;
 }
 
 std::shared_ptr<Rule> Term::get_rule() const {
-    return std::get<std::shared_ptr<Rule>>(value);
+    return std::get<std::weak_ptr<Rule>>(value).lock();
 }
 
 std::string Term::get_syntax() const {
@@ -23,11 +21,21 @@ std::string Term::get_syntax() const {
 }
 
 std::string Term::get_string() const {
-    return is_rule() ? std::get<std::shared_ptr<Rule>>(value)->get_name() : std::get<std::string>(value);
+    if(is_rule()){
+        auto rule_ptr = get_rule();
+        return (rule_ptr == nullptr) ? "[[DELETED RULE]]" : rule_ptr->get_name();
+    } else {
+        return std::get<std::string>(value);
+    }
 }
 
 Scope Term::get_scope() const {
-    return is_rule() ? std::get<std::shared_ptr<Rule>>(value)->get_scope() : Scope::GLOB;
+    if(is_rule()){
+        auto rule_ptr = get_rule();
+        return (rule_ptr == nullptr) ? Scope::GLOB : rule_ptr->get_scope();
+    } else {
+        return Scope::GLOB;
+    }
 }
 
 Meta_func Term::get_meta_func() const {
@@ -39,7 +47,7 @@ bool Term::is_syntax() const {
 }
 
 bool Term::is_rule() const {
-    return std::holds_alternative<std::shared_ptr<Rule>>(value);
+    return std::holds_alternative<std::weak_ptr<Rule>>(value);
 }
 
 std::ostream& operator<<(std::ostream& stream, Term term){
@@ -47,7 +55,13 @@ std::ostream& operator<<(std::ostream& stream, Term term){
         stream << std::quoted(term.get_syntax());
 
     } else {
-        stream << term.get_rule()->get_name();
+        auto rule_ptr = term.get_rule();
+
+        if (rule_ptr == nullptr){
+            stream << "[[DELETED RULE]]";
+        } else {
+            stream << rule_ptr->get_name() << term.constraint;
+        }
     }
 
     return stream;
@@ -55,11 +69,16 @@ std::ostream& operator<<(std::ostream& stream, Term term){
 
 bool Term::operator==(const Term& other) const {
     if(is_rule() && other.is_rule()){
-        return *get_rule() == *other.get_rule();
+        auto a = get_rule();
+        auto b = other.get_rule();
+
+        return a != nullptr && b != nullptr && *a == *b;
 
     } else if (is_syntax() && other.is_syntax()){
         return get_syntax() == other.get_syntax();
+
     } else {
         return false;
+
     }
 }

@@ -3,6 +3,11 @@
 #include <lex.h>
 #include <params.h>
 
+#define TOGGLE_FLAG(name, f) { \
+    f = !f;    \
+    INFO(name + " " + FLAG_STATUS(f)); \
+}
+
 const fs::path Run::OUTPUT_DIR = fs::path(__FILE__).parent_path().parent_path() / fs::path(QuteFuzz::OUTPUTS_FOLDER_NAME);
 
 void init_global_seed(Control& control, std::optional<unsigned int> user_seed) {
@@ -66,13 +71,7 @@ void Run::set_grammar(Control& control){
 
     entry_name = tokens[0];
 
-    Scope entry_scope = ALL_SCOPES;
-
-    // for(const auto& t : tokens){
-    //     scope |= ((t == "E") & EXTERNAL_SCOPE);
-    //     scope |= ((t == "I") & INTERNAL_SCOPE);
-    //     scope |= ((t == "O") & OWNED_SCOPE);
-    // }
+    Scope entry_scope = Scope::GLOB;
 
     current_generator = generators[grammar_name];
     current_generator->set_grammar_entry(entry_name, entry_scope);
@@ -91,7 +90,7 @@ void Run::set_grammar(Control& control){
         exp.value = current_grammar->get_rule_pointer_if_exists(exp.rule_name, exp.scope);
 
         if(exp.value == nullptr){
-            throw std::runtime_error("Rule " + exp.rule_name + STR_SCOPE(exp.scope) + "MUST be defined either by default in the meta-grammar, or redefined in the input grammar");
+            throw std::runtime_error("Rule " + exp.rule_name + STR_SCOPE(exp.scope) + " MUST be defined either by default in the meta-grammar, or redefined in the input grammar");
         }
     }
 
@@ -144,22 +143,26 @@ void Run::loop(){
         .render = false,
         .swarm_testing = false,
         .run_mutate = false,
+        .step = false,
         .ext = ".text",
         .expected_values = {
-            Expected<unsigned int>("MIN_NUM_QUBITS", QuteFuzz::MIN_QUBITS, CLAMP_UP),
-            Expected<unsigned int>("MIN_NUM_BITS", QuteFuzz::MIN_BITS, CLAMP_UP),
-            Expected<unsigned int>("MAX_NUM_QUBITS", QuteFuzz::MAX_QUBITS, CLAMP_DOWN),
-            Expected<unsigned int>("MAX_NUM_BITS", QuteFuzz::MAX_BITS, CLAMP_DOWN),
-            Expected<unsigned int>("MAX_NUM_SUBROUTINES", QuteFuzz::MAX_NUM_SUBROUTINES, CLAMP_DOWN),
+            Expected<unsigned int>("MAX_REG_SIZE", QuteFuzz::MAX_REG_SIZE, CLAMP_DOWN),
             Expected<unsigned int>("NESTED_MAX_DEPTH", QuteFuzz::NESTED_MAX_DEPTH, CLAMP_DOWN)
         },
         .expected_rules = {
-            Expected<std::shared_ptr<Rule>>("qubit_def", Scope::INT, nullptr),
-            Expected<std::shared_ptr<Rule>>("qubit_def", Scope::EXT, nullptr),
-            Expected<std::shared_ptr<Rule>>("qubit_def", Scope::GLOB, nullptr),
-            Expected<std::shared_ptr<Rule>>("bit_def", Scope::INT, nullptr),
-            Expected<std::shared_ptr<Rule>>("bit_def", Scope::EXT, nullptr),
-            Expected<std::shared_ptr<Rule>>("bit_def", Scope::GLOB, nullptr)
+            Expected<std::shared_ptr<Rule>>("register_qubit_def", Scope::INT, nullptr),
+            Expected<std::shared_ptr<Rule>>("register_qubit_def", Scope::GLOB, nullptr),
+            Expected<std::shared_ptr<Rule>>("register_qubit_def", Scope::EXT, nullptr),
+            Expected<std::shared_ptr<Rule>>("singular_qubit_def", Scope::INT, nullptr),
+            Expected<std::shared_ptr<Rule>>("singular_qubit_def", Scope::GLOB, nullptr),
+            Expected<std::shared_ptr<Rule>>("singular_qubit_def", Scope::EXT, nullptr),
+            Expected<std::shared_ptr<Rule>>("register_bit_def", Scope::INT, nullptr),
+            Expected<std::shared_ptr<Rule>>("register_bit_def", Scope::GLOB, nullptr),
+            Expected<std::shared_ptr<Rule>>("register_bit_def", Scope::EXT, nullptr),
+            Expected<std::shared_ptr<Rule>>("singular_bit_def", Scope::INT, nullptr),
+            Expected<std::shared_ptr<Rule>>("singular_bit_def", Scope::GLOB, nullptr),
+            Expected<std::shared_ptr<Rule>>("singular_bit_def", Scope::EXT, nullptr),
+            Expected<std::shared_ptr<Rule>>("gate_op", Scope::GLOB, nullptr),
         },
     };
 
@@ -183,16 +186,16 @@ void Run::loop(){
             help();
 
         } else if (current_command == "render"){
-            qf_control.render = !qf_control.render;
-            INFO("Rendering " + FLAG_STATUS(qf_control.render));
+            TOGGLE_FLAG(current_command, qf_control.render);
 
         } else if (current_command == "swarm_testing") {
-                qf_control.swarm_testing = !qf_control.swarm_testing;
-                INFO("Swarm testing mode " + FLAG_STATUS(qf_control.swarm_testing));
+            TOGGLE_FLAG(current_command, qf_control.swarm_testing);
 
         } else if (current_command == "mutate"){
-            qf_control.run_mutate = !qf_control.run_mutate;
-            INFO("Mutation mode " + FLAG_STATUS(qf_control.run_mutate));
+            TOGGLE_FLAG(current_command, qf_control.run_mutate);
+
+        } else if (current_command == "step"){
+            TOGGLE_FLAG(current_command, qf_control.step);
 
         } else if (current_command == "quit"){
             current_generator.reset();

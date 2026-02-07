@@ -1,34 +1,29 @@
 # qasm.qf
 
-(*
-    TODO:
-    - figure out why programs don't use the subroutines they generate
-*)
-
 EXTENSION = ".qasm";
-MAX_NUM_QUBITS = 10;
+MAX_REG_SIZE = 1;
 
 EXTERNAL {
-    singular_qubit_def = qubit_def_name;
+    singular_qubit_def = NAME;
 
-    singular_bit_def = bit_def_name;
+    singular_bit_def = NAME;
 
-    qubit_defs = qubit_def (COMMA qubit_def)*;
+    qubit_defs = qubit_def (COMMA qubit_def)[UNIFORM(3, 4)];
 
-    bit_defs = bit_def (COMMA bit_def)*;
+    bit_defs = bit_def (COMMA bit_def)[UNIFORM(3, 4)];
 
     qubit_def = singular_qubit_def;
 
     bit_def = singular_bit_def;
 }
 
-register_qubit_def = "qreg " qubit_def_name "[" qubit_def_size "];";
+register_qubit_def = "qreg " NAME "[" SIZE "];";
 
-register_bit_def = "creg " bit_def_name "[" bit_def_size "];";
+register_bit_def = "creg " NAME "[" SIZE "];";
 
-qubit_defs = (qubit_def NEWLINE)+;
+qubit_defs = (qubit_def NEWLINE)[UNIFORM(3, 4)];
 
-bit_defs = (bit_def NEWLINE)+;
+bit_defs = (bit_def NEWLINE)[UNIFORM(3, 4)];
 
 qubit_def = register_qubit_def;
 
@@ -43,7 +38,11 @@ program = header NEWLINE NEWLINE registers NEWLINE subroutine_defs NEWLINE body;
 
 registers = qubit_defs NEWLINE bit_defs;
 
-subroutine_defs = (subroutine_circuit NEWLINE)*;
+# subroutine_defs = (subroutine_circuit NEWLINE)*;
+
+# subroutine_defs = (subroutine_circuit NEWLINE)[2];
+
+subroutine_defs = (subroutine_circuit NEWLINE)[UNIFORM(1, 3)];
 
 body = compound_stmts;
 
@@ -53,27 +52,26 @@ compound_stmts = (compound_stmt NEWLINE)+;
 
 compound_stmt = qubit_op;
 
-subroutine_circuit = "gate " CIRCUIT_NAME " " EXTERNAL::qubit_defs " { " NEWLINE subroutine_body "}";
+subroutine_circuit = "gate " CIRCUIT_NAME " " EXTERNAL::qubit_defs " { " NEWLINE INDENT subroutine_body DEDENT "}";
 
-subroutine_op = subroutine " " qubit_list
+subroutine_op = subroutine " " qubit_list;
 
 # 3. GATES
 # --------
 # QASM syntax: name(params) arg1, arg2;
 
-singular_qubit = qubit_name;
+singular_qubit = NAME;
 
-register_qubit = qubit_name "[" qubit_index "]";
+register_qubit = NAME "[" INDEX "]";
+
+singular_bit = NAME;
+
+register_bit = NAME "[" INDEX "]";
 
 
-singular_bit = bit_name;
+gate_op_args = ("(" float_list ") ")[NUM_FLOATS >= 1] qubit_list;
 
-register_bit = bit_name "[" bit_index "]";
-
-
-gate_op_args = "(" float_list ") " qubit_list | " " qubit_list;
-
-gate_op = gate_name gate_op_args ";";
+gate_op = gate_name " " gate_op_args ";";
 
 gate_name = h | x | y | z | s | sdg | t | tdg | cx | cy | cz | ch |
     ccx | rx | ry | rz | u1 | u2 | u3;

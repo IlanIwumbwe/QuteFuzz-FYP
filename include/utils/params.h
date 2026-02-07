@@ -3,6 +3,8 @@
 
 namespace QuteFuzz {
 
+constexpr std::string_view LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+constexpr std::string_view ALPHA = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 /*
     names
@@ -15,10 +17,8 @@ constexpr char META_GRAMMAR_NAME[] = "meta-grammar";
     parameters - maximums set to reasonable values to prevent excessive resource usage
 */
 // TODO: perform exploration on these
-constexpr unsigned int MIN_QUBITS = 3;
-constexpr unsigned int MIN_BITS = 1;
-constexpr unsigned int MAX_QUBITS = 20;
-constexpr unsigned int MAX_BITS = 2;
+
+constexpr unsigned int MAX_REG_SIZE = 10;
 constexpr unsigned int MAX_NUM_SUBROUTINES = 10;
 constexpr unsigned int NESTED_MAX_DEPTH = 7;
 
@@ -26,8 +26,6 @@ constexpr unsigned int NESTED_MAX_DEPTH = 7;
 // wildcard control needs care, for example in circuit creation of resources
 constexpr unsigned int WILDCARD_MAX = 10;
 constexpr unsigned int RECURSION_LIMIT = 4500;
-
-constexpr unsigned int SWARM_TESTING_GATESET_SIZE = 6;
 
 };
 

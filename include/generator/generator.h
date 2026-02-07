@@ -5,7 +5,7 @@
 #include <ast.h>
 #include <genome.h>
 #include <dag.h>
-#include <term.h>
+#include <qf_term.h>
 #include <mutate.h>
 
 struct Generator {
@@ -26,11 +26,7 @@ struct Generator {
             entry_scope = _entry_scope;
         }
 
-        // inline void set_grammar_control(const Control& control){
-        //     grammar->set_control(control);
-        // }
-
-        std::shared_ptr<Ast> setup_builder();
+        std::shared_ptr<Ast> setup_builder(const Control& control);
 
         friend std::ostream& operator<<(std::ostream& stream, Generator generator){
             stream << "  . " << generator.grammar->get_name() << ": ";
@@ -49,10 +45,6 @@ struct Generator {
 
         inline std::shared_ptr<Grammar> get_grammar() const { return grammar; }
 
-        std::vector<Token_kind> get_available_gates();
-
-        Node_constraints get_swarm_testing_gateset();
-
         Node build_equivalent(Node ast_root);
 
         void ast_to_program(fs::path output_dir, const Control& control, unsigned int seed);
@@ -62,10 +54,7 @@ struct Generator {
         std::string entry_name;
         Scope entry_scope;
 
-        int n_epochs = 100;
-        float elitism = 0.2;
-
-        std::vector<Genome> population;
+        // std::vector<Genome> population;
 };
 
 

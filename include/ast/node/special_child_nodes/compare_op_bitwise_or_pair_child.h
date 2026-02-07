@@ -12,15 +12,16 @@
 class Compare_op_bitwise_or_pair_child : public Node {
 
     public:
-        Compare_op_bitwise_or_pair_child(const std::string& content, const Token_kind& kind) :
-            Node(content, kind)
+        Compare_op_bitwise_or_pair_child(const std::string& str, const Token_kind& kind) :
+            Node(str, kind)
         {}
 
-        void print(std::ostream& stream) const override {
+        void print_program(std::ostream& stream) const override {
             stream << " ";
 
             for(const std::shared_ptr<Node>& child : children){
-                stream << *child << " ";
+                child->print_program(stream);
+                stream << " ";
             }
         }
 

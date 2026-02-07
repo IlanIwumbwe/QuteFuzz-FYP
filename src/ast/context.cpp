@@ -1,6 +1,7 @@
 #include <context.h>
 #include <generator.h>
 #include <params.h>
+#include <variable.h>
 
 int Context::ast_counter = -1;
 
@@ -24,8 +25,7 @@ void Context::reset(Reset_level l){
             [[fallthrough]];
 
         case RL_QUBIT_OP: {
-            get_current_circuit()->reset<Qubit>();
-            get_current_circuit()->reset<Bit>();
+            get_current_circuit()->reset();
 
             current_port = 0;
         }
@@ -44,49 +44,35 @@ bool Context::can_apply_as_subroutine(const std::shared_ptr<Circuit> circuit){
         return false;
     }
 
-    auto pred = [](const auto& elem){ return scope_matches(elem->get_scope(), Scope::EXT); };
+    auto ext_scope_pred = [](const auto& elem){ return scope_matches(elem->get_scope(), Scope::EXT); };
 
-    auto qubits = current_circuit->get_collection<Qubit>();
-    auto bits = current_circuit->get_collection<Bit>();
+    auto current_circuit_qubits = current_circuit->get_coll<Resource>(Resource_kind::QUBIT);
+    auto dest_circuit_qubits = circuit->get_coll<Resource>(Resource_kind::QUBIT);
 
-    unsigned int num_dest_qubits = qubits.size();
-    unsigned int num_dest_bits = bits.size();
+    auto current_circuit_bits = current_circuit->get_coll<Resource>(Resource_kind::BIT);
+    auto dest_circuit_bits = circuit->get_coll<Resource>(Resource_kind::BIT);
 
-    unsigned int num_circuit_qubits = coll_size<Qubit>(qubits, pred);
-    unsigned int num_circuit_bits = coll_size<Bit>(bits, pred);
+    unsigned int num_required_qubits = size_pred<Resource>(dest_circuit_qubits, ext_scope_pred);
+    unsigned int num_required_bits = size_pred<Resource>(dest_circuit_bits, ext_scope_pred);
 
-    bool has_enough_qubits = (num_circuit_qubits >= 1 && num_circuit_qubits <= num_dest_qubits);
-    bool has_enough_bits = num_circuit_bits <= num_dest_bits;
+    unsigned int num_qubits_in_circuit = current_circuit_qubits.size();
+    unsigned int num_bits_in_circuit = current_circuit_bits.size();
+
+    bool has_enough_qubits = num_qubits_in_circuit >= 1 && num_qubits_in_circuit >= num_required_qubits;
+    bool has_enough_bits = num_bits_in_circuit >= 1 && num_bits_in_circuit >= num_required_bits;
 
     return has_enough_qubits && has_enough_bits;
 }
 
-void Context::set_can_apply_subroutines(){
-
+bool Context::current_circuit_uses_subroutines(){
     for(std::shared_ptr<Circuit> circuit : circuits){
         if (can_apply_as_subroutine(circuit))
         {
-            return;
+            return true;
         }
     }
 
-    #ifdef DEBUG
-    INFO("Circuit " + current_circuit_owner + " can't apply subroutines");
-    #endif
-
-    get_current_circuit()->set_can_apply_subroutines(false);
-}
-
-template<typename T>
-unsigned int Context::get_max_external_resources(){
-    size_t res = QuteFuzz::MIN_BITS;
-    auto pred = [](const auto& elem){ return scope_matches(elem->get_scope(), Scope::EXT); };
-
-    for(const std::shared_ptr<Circuit>& circuit : circuits){
-        res = std::max(res, coll_size<T>(circuit->get_collection<T>(), pred));
-    }
-
-    return res;
+    return false;
 }
 
 /// In normal cases, current circuit is the last added circuit into the circuits vector. The exception is if we are no longer under the `subroutines`
@@ -100,10 +86,6 @@ std::shared_ptr<Circuit> Context::get_current_circuit() const {
     }
 }
 
-/// @brief This loop is guaranteed to stop. If this function is called, then `set_can_apply_subroutines` must've passed
-/// So you just need to return a current circuit that's not the main circuit, or the current circuit and needs <= num qubits in current circuit
-/// Qubit comparison needed because `set_can_apply_subroutines` only tells you that there's at least one circuit that can be picked
-/// @return
 std::shared_ptr<Circuit> Context::get_random_circuit(){
 
     bool valid_circuit_exists = false;
@@ -130,20 +112,47 @@ std::shared_ptr<Circuit> Context::get_random_circuit(){
     }
 }
 
+std::shared_ptr<Resource> Context::get_random_resource(Resource_kind rk){
+    Ptr_pred_type<Resource> pred = [](const std::shared_ptr<Resource>& elem){ return !elem->is_used(); };
+    auto filtered_coll = get_current_circuit()->get_coll<Resource>(rk);
+    auto random_resource = get_random_from_coll<Resource>(filtered_coll, pred);
 
-std::shared_ptr<Qubit> Context::get_random_qubit(){
-    auto random_qubit = get_random_from_coll(get_current_circuit()->get_collection<Qubit>(), ALL_SCOPES);
+    random_resource->set_used();
+    // random_resource->extend_flow_path(current.get<Qubit_op>(), current_port++);
 
-    random_qubit->extend_flow_path(current.get<Qubit_op>(), current_port++);
-
-    current.set<Qubit>(random_qubit);
-    return random_qubit;
+    current.set<Resource>(random_resource);
+    return random_resource;
 }
 
-std::shared_ptr<Bit> Context::get_random_bit(){
-    auto random_bit = get_random_from_coll(get_current_circuit()->get_collection<Bit>(), ALL_SCOPES);
-    current.set<Bit>(random_bit);
-    return random_bit;
+
+std::shared_ptr<Resource_def> Context::nn_resource_def(Scope& scope, Resource_kind rk){
+    std::shared_ptr<Resource_def> def;
+
+    // decide whether to treat def as a register or singular definition
+    bool can_use_reg, can_use_sing, is_reg;
+
+    if(rk == Resource_kind::QUBIT){
+        can_use_reg = !control.get_rule("register_qubit_def", scope)->is_empty();
+        can_use_sing = !control.get_rule("singular_qubit_def", scope)->is_empty();
+    } else {
+        can_use_reg = !control.get_rule("register_bit_def", scope)->is_empty();
+        can_use_sing = !control.get_rule("singular_bit_def", scope)->is_empty();
+    }
+
+    if (can_use_reg && can_use_sing){
+        is_reg = random_uint(1, 0);
+    } else if (can_use_reg){
+        is_reg = true;
+    } else {
+        is_reg = false;
+    }
+
+    def = std::make_shared<Resource_def>(scope, rk, is_reg, random_uint(control.get_value("MAX_REG_SIZE"), 1));
+
+    current.set<Resource_def>(def);
+    get_current_circuit()->store_resource_def(def);
+
+    return def;
 }
 
 std::shared_ptr<Circuit> Context::nn_circuit(){
@@ -152,10 +161,10 @@ std::shared_ptr<Circuit> Context::nn_circuit(){
     reset(RL_CIRCUIT);
 
     if(under_subroutines_node()){
-        current_circuit = std::make_shared<Circuit>("sub" + std::to_string(subroutine_counter++), control, true);
+        current_circuit = std::make_shared<Circuit>("sub" + std::to_string(subroutine_counter++), true);
 
     } else {
-        current_circuit = std::make_shared<Circuit>(QuteFuzz::TOP_LEVEL_CIRCUIT_NAME, control, false);
+        current_circuit = std::make_shared<Circuit>(QuteFuzz::TOP_LEVEL_CIRCUIT_NAME, false);
         subroutine_counter = 0;
     }
 
@@ -164,45 +173,8 @@ std::shared_ptr<Circuit> Context::nn_circuit(){
     return current_circuit;
 }
 
-std::shared_ptr<Qubit_defs> Context::nn_qubit_defs(Scope& scope){
-    std::shared_ptr<Circuit> current_circuit = get_current_circuit();
-
-    unsigned int num_defs = current_circuit->make_resource_definitions(scope, RK_QUBIT, control);
-
-    return std::make_shared<Qubit_defs>(num_defs);
-}
-
-std::shared_ptr<Bit_defs> Context::nn_bit_defs(Scope& scope){
-    std::shared_ptr<Circuit> current_circuit = get_current_circuit();
-
-    unsigned int num_defs = current_circuit->make_resource_definitions(scope, RK_BIT, control);
-    return std::make_shared<Bit_defs>(num_defs);
-}
-
-std::shared_ptr<Subroutine_op_arg> Context::nn_subroutine_op_arg(){
-    // if((current_gate != nullptr) && *current_gate == SUBROUTINE){
-    //     current_subroutine_op_arg = std::make_shared<Subroutine_op_arg>(current_gate->get_next_qubit_def());
-    // }
-
-    auto arg = std::make_shared<Subroutine_op_arg>(current.get<Gate>()->get_next_qubit_def());
-    current.set<Subroutine_op_arg>(arg);
-    return arg;
-}
-
-std::shared_ptr<Qubit_definition> Context::nn_qubit_definition(const Scope& scope){
-    auto qubit_def = get_next_from_coll(get_current_circuit()->get_collection<Qubit_definition>(), scope);
-    current.set<Qubit_definition>(qubit_def);
-    return qubit_def;
-}
-
-std::shared_ptr<Bit_definition> Context::nn_bit_definition(const Scope& scope){
-    auto bit_def = get_next_from_coll(get_current_circuit()->get_collection<Bit_definition>(), scope);
-    current.set<Bit_definition>(bit_def);
-    return bit_def;
-}
-
-std::shared_ptr<Gate> Context::nn_gate(const std::string& str, Token_kind& kind, int num_qubits, int num_bits, int num_params){
-    auto gate = std::make_shared<Gate>(str, kind, num_qubits, num_bits, num_params);
+std::shared_ptr<Gate> Context::nn_gate(const std::string& str, Token_kind& kind){
+    auto gate = std::make_shared<Gate>(str, kind);
 
     current.set<Gate>(gate);
     current.get<Qubit_op>()->set_gate_node(gate);
@@ -219,7 +191,7 @@ std::shared_ptr<Gate> Context::nn_gate_from_subroutine(){
         5. give this gate to the current qubit op
     */
     std::shared_ptr<Circuit> subroutine_circuit = get_random_circuit();
-    auto qubit_defs = subroutine_circuit->get_collection<Qubit_definition>();
+    auto qubit_defs = subroutine_circuit->get_coll<Resource_def>(Resource_kind::QUBIT);
     auto gate_name = subroutine_circuit->get_owner();
 
     auto gate = std::make_shared<Gate>(gate_name, SUBROUTINE, qubit_defs);
@@ -231,8 +203,8 @@ std::shared_ptr<Gate> Context::nn_gate_from_subroutine(){
     return gate;
 }
 
-std::shared_ptr<Integer> Context::nn_circuit_id() {
-    return std::make_shared<Integer>(ast_counter);
+std::shared_ptr<UInt> Context::nn_circuit_id() {
+    return std::make_shared<UInt>(ast_counter);
 }
 
 /// @brief Any stmt that is nested (if, elif, else) is a nested stmt. Any time such a node is used, reduce nested depth
@@ -240,44 +212,26 @@ std::shared_ptr<Integer> Context::nn_circuit_id() {
 /// @param kind
 /// @param parent
 /// @return
-std::shared_ptr<Nested_stmt> Context::nn_nested_stmt(const std::string& str, const Token_kind& kind, std::shared_ptr<Node> parent){
+std::shared_ptr<Nested_stmt> Context::nn_nested_stmt(const std::string& str, const Token_kind& kind){
     reset(RL_QUBIT_OP);
     nested_depth = (nested_depth == 0) ? 0 : nested_depth - 1;
     return std::make_shared<Nested_stmt>(str, kind);
 }
 
-std::shared_ptr<Compound_stmt> Context::nn_compound_stmt(std::shared_ptr<Node> parent){
+std::shared_ptr<Compound_stmt> Context::nn_compound_stmt(){
     return Compound_stmt::from_nested_depth(nested_depth);
 }
 
-std::shared_ptr<Compound_stmts> Context::nn_compound_stmts(std::shared_ptr<Node> parent){
-
-    /*
-        this check is to make sure we only call the function for the compound statements rule in the circuit body, as opposed to each nested
-        call within the body in control flow
-    */
-
-    if(*parent == BODY){
-        set_can_apply_subroutines();
-    }
-
-    return Compound_stmts::from_num_compound_stmts(QuteFuzz::WILDCARD_MAX);
-}
-
-std::shared_ptr<Subroutine_defs> Context::nn_subroutines(){
-    unsigned int n_circuits = random_uint(control.get_value("MAX_NUM_SUBROUTINES"));
-
-    std::shared_ptr<Subroutine_defs> node = std::make_shared<Subroutine_defs>(n_circuits);
-
-    subroutines_node = std::make_optional<std::shared_ptr<Subroutine_defs>>(node);
-
+std::shared_ptr<Node> Context::nn_subroutines(){
+    std::shared_ptr<Node> node = std::make_shared<Node>("", SUBROUTINE_DEFS);
+    subroutines_node = std::make_optional<std::shared_ptr<Node>>(node);
     return node;
 }
 
 std::shared_ptr<Qubit_op> Context::nn_qubit_op(){
     reset(RL_QUBIT_OP);
 
-    auto qubit_op = std::make_shared<Qubit_op>(get_current_circuit());
+    auto qubit_op = std::make_shared<Qubit_op>();
     current.set<Qubit_op>(qubit_op);
     return qubit_op;
 }
@@ -295,4 +249,18 @@ std::shared_ptr<Node> Context::nn_next(Node& ast_root, const Token_kind& kind){
     }
 
     return *node_generators[kind]->begin()++;
+}
+
+unsigned int Context::operator()(Token_kind kind) const {
+    auto gate = get_current_node<Gate>();
+
+    if (kind == NUM_QUBITS) {
+        return gate->get_num_external_qubits();
+    } else if (kind == NUM_BITS) {
+        return gate->get_num_external_bits();
+    } else if (kind == NUM_FLOATS) {
+        return gate->get_num_floats();
+    }
+
+    return 0;
 }

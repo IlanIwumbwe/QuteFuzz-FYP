@@ -37,10 +37,32 @@ unsigned int random_uint(unsigned int max, unsigned int min){
     }
 }
 
+std::string random_str(size_t length){
+    std::string s;
+    s.reserve(length);
+
+    s += QuteFuzz::LETTERS[random_uint(QuteFuzz::LETTERS.size(), 0)];
+
+    for (size_t i = 1; i < length; ++i) {
+        s += QuteFuzz::ALPHA[random_uint(QuteFuzz::ALPHA.size(), 0)];
+    }
+
+    return s;
+}
+
 
 unsigned int safe_stoul(const std::string& str, unsigned int default_value) {
     try {
         unsigned int ret = std::stoul(str);
+        return ret;
+    } catch (const std::invalid_argument& e) {
+        return default_value;
+    }
+}
+
+int safe_stoi(const std::string& str, int default_value) {
+    try {
+        int ret = std::stoi(str);
         return ret;
     } catch (const std::invalid_argument& e) {
         return default_value;
@@ -164,7 +186,7 @@ std::string escape_string(const std::string& input) {
             case '\\': output += "\\\\"; break;
         }
     }
-    return output;
+    return output.size() ? output : input;
 }
 
 void render(std::function<void(std::ostringstream&)> extend_dot_string, const fs::path& render_path){

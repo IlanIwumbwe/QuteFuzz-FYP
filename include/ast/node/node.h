@@ -3,66 +3,22 @@
 
 #include <utils.h>
 #include <lex.h>
-#include <lex.h>
-#include <branch.h>
-#include <lex.h>
+#include <node_constraints.h>
+#include <rule.h>
 
 enum Node_build_state {
     NB_DONE,
     NB_BUILD,
 };
 
-
 enum Node_kind {
     TERMINAL,
     NON_TERMINAL,
 };
 
-
-struct Node_constraints {
-
-    public:
-
-        Node_constraints(){}
-
-        Node_constraints(Token_kind rule, unsigned int _occurances):
-            rule_kinds_and_occurances{{rule, _occurances}}
-        {}
-
-        Node_constraints(std::unordered_map<Token_kind, unsigned int> _rule_kinds_and_occurances):
-            rule_kinds_and_occurances(std::move(_rule_kinds_and_occurances))
-        {}
-
-        bool passed(const Branch& branch);
-
-        void set_occurances_for_rule(const Token_kind& rule, unsigned int n_occurances);
-
-        inline unsigned int n_constraints() const {
-            return rule_kinds_and_occurances.size();
-        }
-
-        void add(const Token_kind& rule, unsigned int n_occurances);
-
-        inline const std::unordered_map<Token_kind, unsigned int>& get_constraints() const {
-            return rule_kinds_and_occurances;
-        }
-
-        friend std::ostream& operator<<(std::ostream& stream, Node_constraints& nc) {
-            stream << "====================================" << std::endl;
-
-            for(const auto& [rule, occurances] : nc.rule_kinds_and_occurances){
-                stream << kind_as_str(rule) << " " << occurances << std::endl;
-            }
-
-            stream << "====================================" << std::endl;
-
-            return stream;
-        }
-
-    private:
-        std::unordered_map<Token_kind, unsigned int> rule_kinds_and_occurances;
-
-};
+class UInt;
+class Variable;
+class Branch;
 
 /// @brief A node is a term with pointers to other nodes
 class Node : public std::enable_shared_from_this<Node> {
@@ -73,22 +29,24 @@ class Node : public std::enable_shared_from_this<Node> {
 
         Node(){}
 
-        Node(std::string _content, Token_kind _kind = SYNTAX, const std::string _indentation_str = ""):
-            content(_content),
+        Node(std::string _str, Token_kind _kind = SYNTAX, const std::string _indentation_str = ""):
+            str(_str),
             kind(_kind),
             indentation_str(_indentation_str)
         {
             id = node_counter++;
         }
 
-        Node(std::string _content, Token_kind _kind, const std::optional<Node_constraints>& _constraints, const std::string _indentation_str = ""):
-            content(_content),
+        Node(std::string _str, Token_kind _kind, const std::optional<Node_constraints>& _constraints, const std::string _indentation_str = ""):
+            str(_str),
             kind(_kind),
             indentation_str(_indentation_str),
             constraints(_constraints)
         {
             id = node_counter++;
         }
+
+        Node(const Node& other) = default;
 
         virtual ~Node() = default;
 
@@ -108,14 +66,18 @@ class Node : public std::enable_shared_from_this<Node> {
             return id;
         }
 
-        std::string get_content() const;
+        void incr_id(){
+            id++;
+        }
 
-        Token_kind get_kind() const {
+        std::string get_str() const;
+
+        Token_kind get_node_kind() const {
             return kind;
         }
 
         virtual std::string resolved_name() const {
-            return get_content();
+            return get_str();
         }
 
         bool visited(std::vector<std::shared_ptr<Node>*>& visited_slots, std::shared_ptr<Node>* slot, bool track_visited);
@@ -134,20 +96,27 @@ class Node : public std::enable_shared_from_this<Node> {
             return res;
         }
 
-        virtual void print(std::ostream& stream) const {
+        inline int count_nodes(Token_kind _kind) const {
+            int res = (kind == _kind);
+
+            for(auto child : children){
+                res += child->count_nodes();
+            }
+
+            return res;
+        }
+
+        /// Used to print the program
+        virtual void print_program(std::ostream& stream) const {
             if(kind == SYNTAX){
-                stream << content;
+                stream << str;
             } else {
 
                 for(const std::shared_ptr<Node>& child : children){
-                    stream << indentation_str << *child;
+                    stream << indentation_str;
+                    child->print_program(stream);
                 }
             }
-        }
-
-        friend std::ostream& operator<<(std::ostream& stream, const Node& n) {
-            n.print(stream);
-            return stream;
         }
 
         void print_ast(std::string indent) const;
@@ -156,6 +125,10 @@ class Node : public std::enable_shared_from_this<Node> {
 
         std::vector<std::shared_ptr<Node>> get_children() const {
             return children;
+        }
+
+        inline void clear_children(){
+            children.clear();
         }
 
         inline std::shared_ptr<Node> child_at(size_t index) const {
@@ -181,7 +154,7 @@ class Node : public std::enable_shared_from_this<Node> {
         }
 
         bool operator==(const Node& other) const {
-            return get_content() == other.get_content();
+            return get_str() == other.get_str();
         }
 
         bool branch_satisfies_constraints(const Branch& branch){
@@ -195,8 +168,6 @@ class Node : public std::enable_shared_from_this<Node> {
                 constraints = std::make_optional<Node_constraints>(rule_kind, n_occurances);
             }
         }
-
-        virtual unsigned int get_n_ports() const {return 1;}
 
         int get_next_child_target();
 
@@ -216,9 +187,21 @@ class Node : public std::enable_shared_from_this<Node> {
             }
         }
 
+        inline void remove_constraints(){
+            constraints = std::nullopt;
+        }
+
+        virtual unsigned int get_n_ports() const {return 1;}
+
+        virtual std::shared_ptr<Variable> get_name() const;
+
+        virtual std::shared_ptr<UInt> get_size() const;
+
+        virtual std::shared_ptr<UInt> get_index() const;
+
     protected:
         int id = 0;
-        std::string content;
+        std::string str;
         Token_kind kind;
 
         std::string indentation_str;

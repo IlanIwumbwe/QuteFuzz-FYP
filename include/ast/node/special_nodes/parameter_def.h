@@ -11,7 +11,7 @@ class Parameter_def : public Node {
             Node("parameter_def", PARAMETER_DEF)
         {}
 
-        std::shared_ptr<Variable> get_name(){
+        std::shared_ptr<Variable> get_name() const override {
             return std::make_shared<Variable>(_name);
         }
 

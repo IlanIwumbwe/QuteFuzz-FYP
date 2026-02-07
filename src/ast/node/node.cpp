@@ -1,48 +1,11 @@
 #include <node.h>
-
-/*
-    CONSTRAINTS HANDLING
-*/
-
-bool Node_constraints::passed(const Branch& branch){
-    // Count the number of occurances of each rule in the branch and return true if they match the expected occurances
-    for(const auto& [rule, occurances] : rule_kinds_and_occurances){
-        if(branch.count_rule_occurances(rule) != occurances){
-            return false;
-        }
-    }
-    return true;
-}
-
-void Node_constraints::set_occurances_for_rule(const Token_kind& rule, unsigned int n_occurances){
-    rule_kinds_and_occurances[rule] = n_occurances;
-}
-
-
-void Node_constraints::add(const Token_kind& rule, unsigned int n_occurances){
-    //Check if rule is in rule_kinds_and_occurances
-    if(rule_kinds_and_occurances.find(rule) != rule_kinds_and_occurances.end()){
-        rule_kinds_and_occurances[rule] += n_occurances;
-    } else {
-        rule_kinds_and_occurances[rule] = n_occurances;
-    }
-}
-
-/*
-    NODE LOGIC
-*/
+#include <uint.h>
+#include <variable.h>
 
 int Node::node_counter = 0;
 
-std::string Node::get_content() const {
-    std::string esc_content = (kind == SYNTAX) ? escape_string(content) : content;
-    std::string str_id = " " + std::to_string(id);
-
-    if(content.size() > 50){
-        return esc_content.substr(0, 50) + " ... " + str_id;
-    } else {
-        return esc_content + str_id;
-    }
+std::string Node::get_str() const {
+    return (kind == SYNTAX) ? escape_string(str) : str;
 }
 
 bool Node::visited(std::vector<std::shared_ptr<Node>*>& visited_slots, std::shared_ptr<Node>* slot, bool track_visited) {
@@ -58,7 +21,7 @@ std::shared_ptr<Node>* Node::find_slot(Token_kind node_kind, std::vector<std::sh
     std::shared_ptr<Node>* maybe_find;
 
     for(std::shared_ptr<Node>& child : children){
-        if((child->get_kind() == node_kind) && !visited(visited_slots, &child, track_visited)){
+        if((child->get_node_kind() == node_kind) && !visited(visited_slots, &child, track_visited)){
             return &child;
         }
 
@@ -82,10 +45,10 @@ std::shared_ptr<Node> Node::find(Token_kind node_kind) {
 }
 
 void Node::print_ast(std::string indent) const {
-    std::cout << content << std::endl;
+    std::cout << indent << str << " " <<  kind << " (" << this << ")" << std::endl;
+    std::cout << indent << "n_children: " << children.size() << std::endl;
 
     for(const std::shared_ptr<Node>& child : children){
-        std::cout << indent;
         child->print_ast(indent + "   ");
     }
 }
@@ -93,11 +56,11 @@ void Node::print_ast(std::string indent) const {
 void Node::extend_dot_string(std::ostringstream& ss) const {
 
     for(const std::shared_ptr<Node>& child : children){
-        if(child->get_kind() != SYNTAX){
+        if(child->get_node_kind() != SYNTAX){
             int child_id = child->get_id();
 
-            ss << "  " << id << " [label=\"" << get_content() << "\"];" << std::endl;
-            ss << "  " << child_id << " [label=\"" << child->get_content() << "\"];" << std::endl;
+            ss << "  " << id << " [label=\"" << get_str() << "\"];" << std::endl;
+            ss << "  " << child_id << " [label=\"" << child->get_str() << "\"];" << std::endl;
 
             ss << "  " << id << " -> " << child_id << ";" << std::endl;
         }
@@ -112,7 +75,7 @@ int Node::get_next_child_target(){
     if(partition_counter < partition_size){
         return child_partition[partition_counter++];
     } else {
-        WARNING("Node " + content + " qubit node target partition info: Counter: " + std::to_string(partition_counter) + ", Size: " + std::to_string(partition_size));
+        WARNING("Node " + str + " qubit node target partition info: Counter: " + std::to_string(partition_counter) + ", Size: " + std::to_string(partition_size));
         return 1;
     }
 }
@@ -190,4 +153,16 @@ void Node::make_control_flow_partition(int target, int n_children){
         add_constraint(ELIF_STMT, 1);
 
     }
+}
+
+std::shared_ptr<Variable> Node::get_name() const {
+    return std::make_shared<Variable>();
+}
+
+std::shared_ptr<UInt> Node::get_size() const {
+    return std::make_shared<UInt>();
+}
+
+std::shared_ptr<UInt> Node::get_index() const {
+    return std::make_shared<UInt>();
 }

@@ -12,6 +12,7 @@
 #include <random>
 #include <fstream>
 #include <set>
+#include <string_view>
 #include <filesystem>
 #include <unordered_map>
 #include <algorithm>
@@ -59,7 +60,7 @@ inline x operator~(x a) {    \
 #define ANNOT(x) (std::string("at ") + __FILE__ + "," + std::to_string(__LINE__) + ": " + (x))
 
 // logging
-#define ERROR(x) std::cerr << (std::string("[ERROR] ") + RED(ANNOT(x))) << std::endl
+#define ERROR(x) throw std::runtime_error("[ERROR] " + RED(ANNOT(x)))
 #define WARNING(x) std::cout << (std::string("[WARNING] ") + YELLOW(ANNOT(x))) << std::endl
 #define INFO(x) std::cout << (std::string("[INFO] ") + GREEN(x)) << std::endl
 
@@ -85,6 +86,8 @@ unsigned int random_uint(unsigned int max = UINT32_MAX, unsigned int min = 0);
 
 unsigned int safe_stoul(const std::string& str, unsigned int default_value);
 
+int safe_stoi(const std::string& str, int default_value);
+
 std::vector<std::vector<int>> n_choose_r(const int n, const int r);
 
 int vector_sum(std::vector<int> in);
@@ -102,6 +105,8 @@ std::string random_hex_colour();
 std::string escape_string(const std::string& input);
 
 void render(std::function<void(std::ostringstream&)> extend_dot_string, const fs::path& render_path);
+
+std::string random_str(size_t length = 12);
 
 template<typename T>
 inline std::vector<T> append_vectors(std::vector<T> vec1, std::vector<T> vec2){
