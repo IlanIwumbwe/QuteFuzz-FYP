@@ -1,4 +1,4 @@
-
+# Pytket grammar with control flow support
 # import "qasm.qf"
 
 x = "X";
@@ -22,11 +22,39 @@ t = "T";
 s = "S";
 measure = "Measure";
 
+# ============================================================================
+# CONTROL FLOW - Override meta-grammar to add pytket-specific control flow
+# ============================================================================
+
+# Pytket uses Python-style if/elif/else with bit comparisons
+if_stmt =
+    'if ' bit ' == ' branch_condition ':' NEWLINE INDENT compound_stmts DEDENT elif_stmt
+    | 'if ' bit ' == ' branch_condition ':' NEWLINE INDENT compound_stmts DEDENT (else_stmt)?;
+
+elif_stmt = 
+    'elif ' bit ' == ' branch_condition ':' NEWLINE INDENT compound_stmts DEDENT elif_stmt
+    | 'elif ' bit ' == ' branch_condition ':' NEWLINE INDENT compound_stmts DEDENT (else_stmt)?;
+
+else_stmt =
+    'else:' NEWLINE INDENT compound_stmts DEDENT;
+
+# Branch conditions for classical bit values
+branch_condition = 1 | 0;
+
+# ============================================================================
+# CIRCUIT STRUCTURE
+# ============================================================================
+
 circuit = circuit_def_header NEWLINE body NEWLINE;
 
+# Body includes both qubits and classical bits (needed for control flow)
+body = EXTERNAL::qubit_defs EXTERNAL::bit_defs NEWLINE compound_stmts;
+
+# ============================================================================
+# EXTERNAL SCOPE DEFINITIONS
+# ============================================================================
 
 EXTERNAL {
-
     qubit_defs = (qubit_def NEWLINE)[UNIFORM(3,4)];
 
     bit_defs = (bit_def NEWLINE)[UNIFORM(3,4)];
@@ -44,6 +72,9 @@ EXTERNAL {
         NAME " = " CIRCUIT_NAME '.add_c_register("' NAME '", ' SIZE ")";
 }
 
+# ============================================================================
+# IMPORTS AND HEADERS
+# ============================================================================
 
 imports =
     "from pytket import Circuit, Qubit, Bit" NEWLINE
@@ -52,31 +83,41 @@ imports =
     "from diff_testing.pytket import pytketTesting"
     ;
 
+circuit_def_header = CIRCUIT_NAME " = Circuit()";
 
 subroutine_def_footer = CIRCUIT_NAME " = CircBox(" CIRCUIT_NAME ")" NEWLINE;
 
-circuit_def_header = CIRCUIT_NAME " = Circuit()";
+# ============================================================================
+# STATEMENTS - Enable both quantum operations and control flow
+# ============================================================================
 
-compound_stmt = qubit_op;
+compound_stmt = 
+    qubit_op
+    | if_stmt;
 
+# ============================================================================
+# GATE OPERATIONS
+# ============================================================================
 
 gate_op = CIRCUIT_NAME "." gate_name "(" gate_op_args ")";
 
 subroutine_op = CIRCUIT_NAME ".add_gate(" subroutine ",[" qubit_list "])";
 
-condition_value = "condition_value=1"
-                | "condition_value=0";
-
+# ============================================================================
+# QUBIT AND BIT REFERENCES
+# ============================================================================
 
 singular_qubit = NAME;
 
 register_qubit = NAME "[" INDEX "]";
 
-
 singular_bit = NAME;
 
 register_bit = NAME "[" INDEX "]";
 
+# ============================================================================
+# COMPILER CALL
+# ============================================================================
 
 compiler_call = "pt = pytketTesting() " NEWLINE testing_method;
 
