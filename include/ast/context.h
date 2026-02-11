@@ -8,15 +8,16 @@
 #include <compound_stmt.h>
 #include <gate.h>
 #include <genome.h>
-#include <nested_stmt.h>
 #include <parameter_def.h>
 #include <ast_utils.h>
+#include <indent.h>
 
 
 enum Reset_level {
 	RL_PROGRAM,
 	RL_CIRCUIT,
-	RL_RESOURCES,
+	RL_QUBITS,
+	RL_BITS,
 };
 
 struct Current_nodes {
@@ -106,6 +107,10 @@ struct Context {
 			nested_depth = control.get_value("NESTED_MAX_DEPTH");
 		}
 
+		void reduce_nested_depth(){
+			nested_depth = (nested_depth == 0) ? 0 : nested_depth - 1;
+		}
+
 		void reset(Reset_level l);
 
 		bool can_apply_as_subroutine(const std::shared_ptr<Circuit> circuit);
@@ -123,8 +128,6 @@ struct Context {
 		std::shared_ptr<Circuit> nn_circuit();
 
 		std::shared_ptr<Gate> nn_gate(const std::string& str, Token_kind& kind);
-
-		std::shared_ptr<Nested_stmt> nn_nested_stmt(const std::string& str, const Token_kind& kind);
 
 		std::shared_ptr<Compound_stmt> nn_compound_stmt();
 
@@ -171,7 +174,7 @@ struct Context {
 
 		unsigned int subroutine_counter = 0;
 		unsigned int current_port = 0;
-		unsigned int nested_depth; // default set when control is set
+		unsigned int nested_depth;
 
 		std::optional<std::shared_ptr<Node>> subroutines_node = std::nullopt;
 };

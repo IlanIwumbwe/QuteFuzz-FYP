@@ -1,6 +1,8 @@
 # Pytket grammar with control flow support
 # import "qasm.qf"
 
+NESTED_MAX_DEPTH = 3;
+
 x = "X";
 y = "Y";
 z = "Z";
@@ -32,27 +34,11 @@ u2 = "U2";
 u3 = "U3";
 phased_x = "PhasedX";
 
-gate_name += sdg | tdg | vdg | swap | cswap | crx | cry | crz | 
-    u1 | u2 | u3 | phased_x;
+gate_name += sdg | tdg | vdg | swap | cswap | crx | cry | crz |
+    u1 | u2 | u3 | phased_x | measure |
+    ch;
+    # | s | t | v | ; # TODO: figure out gateset predicate issue
 
-# ============================================================================
-# CONTROL FLOW - Override meta-grammar to add pytket-specific control flow
-# ============================================================================
-
-# Pytket uses Python-style if/elif/else with bit comparisons
-if_stmt =
-    'if ' bit ' == ' branch_condition ':' NEWLINE INDENT compound_stmts DEDENT elif_stmt
-    | 'if ' bit ' == ' branch_condition ':' NEWLINE INDENT compound_stmts DEDENT (else_stmt)?;
-
-elif_stmt = 
-    'elif ' bit ' == ' branch_condition ':' NEWLINE INDENT compound_stmts DEDENT elif_stmt
-    | 'elif ' bit ' == ' branch_condition ':' NEWLINE INDENT compound_stmts DEDENT (else_stmt)?;
-
-else_stmt =
-    'else:' NEWLINE INDENT compound_stmts DEDENT;
-
-# Branch conditions for classical bit values
-branch_condition = 1 | 0;
 
 # ============================================================================
 # CIRCUIT STRUCTURE
@@ -116,11 +102,35 @@ subroutine_def_footer = CIRCUIT_NAME " = CircBox(" CIRCUIT_NAME ")" NEWLINE;
 # STATEMENTS - Enable both quantum operations and control flow
 # ============================================================================
 
-compound_stmt = 
+# TODO: conditional circbox application
+
+# not supported by AER
+classical_op =
+    | CIRCUIT_NAME ".add_c_and(" bit ", " bit ", " bit ")"
+    | CIRCUIT_NAME ".add_c_or(" bit ", " bit ", " bit ")"
+    | CIRCUIT_NAME ".add_c_xor(" bit ", " bit ", " bit ")"
+    | CIRCUIT_NAME ".add_c_not(" bit ", " bit ")";
+
+classical_expr = bit " == " branch_condition;
+
+branch_condition = 1 | 0;
+
+if_stmt =
+    'if ' classical_expr ':' NEWLINE INDENT<compound_stmts> LINE_INDENT<elif_stmt>
+    | 'if ' classical_expr ':' NEWLINE INDENT<compound_stmts> LINE_INDENT<(else_stmt)?>;
+
+elif_stmt =
+    'elif ' classical_expr ':' NEWLINE INDENT<compound_stmts> LINE_INDENT<elif_stmt>
+    | 'elif ' classical_expr ':' NEWLINE INDENT<compound_stmts> LINE_INDENT<(else_stmt)?>;
+
+else_stmt =
+    'else:' NEWLINE INDENT<compound_stmts>;
+
+compound_stmt =
     qubit_op
     | if_stmt
-    | barrier_op; 
-    # | reset_op; # leads to acknowledged bug: https://github.com/Quantinuum/tket/issues/2109
+    | barrier_op
+    | reset_op;
 
 # ============================================================================
 # GATE OPERATIONS
@@ -166,7 +176,7 @@ compiler_call = "pt = pytketTesting() " NEWLINE testing_method;
 
 testing_method = CIRCUIT_NAME ".measure_all() " NEWLINE "pt.ks_diff_test(" CIRCUIT_NAME COMMA circuit_id RPAREN;
 
-# testing_method = "for circuit in [" CIRCUIT_NAME ("," CIRCUIT_NAME)* "]: circuit.measure_all()" NEWLINE 
+# testing_method = "for circuit in [" CIRCUIT_NAME ("," CIRCUIT_NAME)* "]: circuit.measure_all()" NEWLINE
 #     "pt.ks_diff_test(" CIRCUIT_NAME COMMA circuit_id RPAREN;
 
 # ============================================================================

@@ -1,16 +1,7 @@
 # qiskit
 
-NESTED_MAX_DEPTH = 5;
+NESTED_MAX_DEPTH = 3;
 
-# Overwrites from meta-grammar
-if_stmt =
-    'with ' CIRCUIT_NAME '.if_test((' bit COMMA branch_condition ')) as else_' INDENTATION_DEPTH ':' NEWLINE INDENT compound_stmts DEDENT elif_stmt
-    | 'with ' CIRCUIT_NAME '.if_test((' bit COMMA branch_condition ')) as else_' INDENTATION_DEPTH ':' NEWLINE INDENT compound_stmts DEDENT (else_stmt)?;
-elif_stmt = ;
-else_stmt =
-    'with else_' INDENTATION_DEPTH ':' NEWLINE INDENT compound_stmts DEDENT;
-
-branch_condition = 1 | 0;
 
 gate_name += s | sdg | t | tdg | u3 | measure;
 
@@ -90,14 +81,10 @@ EXTERNAL {
 imports =
     "from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister" NEWLINE
     "from qiskit.circuit import Parameter" NEWLINE
+    "from qiskit.circuit.classical import expr" NEWLINE
     "from qiskit.circuit.library import standard_gates" NEWLINE
     swarm_testing_imports NEWLINE
     "from diff_testing.qiskit import qiskitTesting" NEWLINE
-    ;
-
-compound_stmt =
-    qubit_op
-    | if_stmt
     ;
 
 # Redefine compound_stmt and related rules
@@ -112,6 +99,87 @@ subroutine_op_arg =
     qubit
     | qubit_list
     ;
+
+# Control flow operations
+while_stmt =
+    'with ' CIRCUIT_NAME '.while_loop((' bit ', ' branch_condition ')):'
+    NEWLINE INDENT<compound_stmts>;
+
+for_stmt = for_range | for_iterable;
+
+for_range = 
+    NAME " = Parameter('" NAME "')" NEWLINE
+    "with " CIRCUIT_NAME ".for_loop(range(" for_bound "), " NAME "):" 
+    NEWLINE INDENT<compound_stmts>;
+
+for_bound = INTEGER [UNIFORM(1, 5)];  # Always terminates!
+
+for_iterable =
+    NAME " = [" float_literal (", " float_literal)[UNIFORM(1, 4)] "]" NEWLINE
+    "with " CIRCUIT_NAME ".for_loop(" NAME "):" 
+    NEWLINE INDENT<compound_stmts>;
+
+# TODO: SWITCH STMTS: more complex with switch over registers and case option tracking via some feature
+
+# switch_stmt =
+#     'with ' CIRCUIT_NAME '.switch(' bit ') as case' INDENT_LEVEL ':' NEWLINE
+#     INDENT<((case_stmts NEWLINE) (default_case)?)>;
+
+# case_stmts = 'with case' INDENT_LEVEL '(' 0 '):' NEWLINE INDENT<compound_stmts> NEWLINE LINE_INDENT<('with case' INDENT_LEVEL '(' 1 '):' NEWLINE INDENT<compound_stmts>)>;
+
+# case_stmt =
+#     'with case(' case_values '):' NEWLINE INDENT<compound_stmts>;
+
+# case_values = INTEGER (', ' INTEGER)[UNIFORM(0,2)];
+
+# default_case =
+#     'with case(case.DEFAULT):' NEWLINE INDENT<compound_stmts>;
+
+#TODO: implement `qreg` rule and others stuff needed for register comparison
+# 1. Expressions that return a Number (Uint)
+uint_expr =
+    qreg
+    | INTEGER
+    | 'expr.bit_and(' uint_expr ', ' uint_expr ')'
+    | 'expr.bit_or(' uint_expr ', ' uint_expr ')'
+    | 'expr.bit_xor(' uint_expr ', ' uint_expr ')';
+
+# 2. Expressions that return a Condition (Bool)
+bool_expr =
+    'expr.equal(' bit ',' ('True' | 'False') ')'
+    # Comparisons turn Uints into Bools
+    # | 'expr.equal(' uint_expr ', ' uint_expr ')'
+    # | 'expr.not_equal(' uint_expr ', ' uint_expr ')'
+    # | 'expr.less(' uint_expr ', ' uint_expr ')'
+    # Logic combines Bools into Bools
+    | 'expr.logic_or(' bool_expr ', ' bit ')'
+    | 'expr.logic_and(' bool_expr ', ' bit ')'
+    | 'expr.logic_not(' bit ')';
+
+# Classical expressions
+classical_expr = bool_expr;
+
+# Update if_stmt to use classical_expr
+if_stmt =
+    'with ' CIRCUIT_NAME '.if_test(' classical_expr ') as else_' INDENT_LEVEL ':' NEWLINE INDENT<compound_stmts>
+    LINE_INDENT<('with else_' INDENT_LEVEL ':' NEWLINE INDENT<compound_stmts>)?>;
+
+# Update compound_stmt
+compound_stmt =
+    qubit_op
+    | if_stmt
+    # | while_stmt
+    # | for_stmt        
+    # | switch_stmt     # TODO: figure out how to label the nested cases properly
+    | barrier_op
+    | reset_op;
+
+# Barriers and delays
+barrier_op = CIRCUIT_NAME '.barrier([' qubit_list '])';
+delay_op = CIRCUIT_NAME '.delay(' INTEGER ', ' qubit ')';
+reset_op = CIRCUIT_NAME '.reset(' qubit ')';
+
+branch_condition = 1 | 0;
 
 singular_qubit = NAME "[0]";
 

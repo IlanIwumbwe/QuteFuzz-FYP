@@ -69,17 +69,11 @@ enum Token_kind {
     PARAMETER_DEF,
     QUBIT_OP,
     GATE_OP,
+    EXPR,
     SUBROUTINE_OP,
     GATE_NAME,
     SUBROUTINE,
     CIRCUIT_ID,
-    IF_STMT,
-    ELSE_STMT,
-    ELIF_STMT,
-    DISJUNCTION,
-    CONJUNCTION,
-    INVERSION,
-    EXPRESSION,
     COMPARE_OP_BITWISE_OR_PAIR,
     COMPOUND_STMT,
     COMPOUND_STMTS,
@@ -89,12 +83,12 @@ enum Token_kind {
 
     META_FUNC_TOP,                                /// ADD META FUNCS BELOW!
     CIRCUIT_NAME,
-    INDENTATION_DEPTH,
     NUM_QUBITS,
     NUM_BITS,
     NUM_FLOATS,
     INDENT,
-    DEDENT,
+    LINE_INDENT,
+    INDENT_LEVEL,
     UNIFORM,
     INTEGER,
     FLOAT,
@@ -204,18 +198,14 @@ const std::vector<Token_matcher> TOKEN_RULES = {
     Token_matcher("register_bit", REGISTER_BIT),
     Token_matcher("subroutine", SUBROUTINE),
     Token_matcher("circuit_id", CIRCUIT_ID),
-    Token_matcher("if_stmt", IF_STMT),
-    Token_matcher("else_stmt", ELSE_STMT),
-    Token_matcher("elif_stmt", ELIF_STMT),
-    Token_matcher("disjunction", DISJUNCTION),
-    Token_matcher("conjunction", CONJUNCTION),
-    Token_matcher("inversion", INVERSION),
-    Token_matcher("expression", EXPRESSION),
     Token_matcher("compare_op_bitwise_or_pair", COMPARE_OP_BITWISE_OR_PAIR),
     Token_matcher("compound_stmt", COMPOUND_STMT),
     Token_matcher("compound_stmts", COMPOUND_STMTS),
     Token_matcher("subroutine_compound_stmts", COMPOUND_STMTS),
     Token_matcher("parameter_def", PARAMETER_DEF),
+    Token_matcher("classical_expr", EXPR),
+    Token_matcher("bool_expr", EXPR),
+    Token_matcher("uint_expr", EXPR),
     Token_matcher("h", H),
     Token_matcher("x", X),
     Token_matcher("y", Y),
@@ -260,9 +250,9 @@ const std::vector<Token_matcher> TOKEN_RULES = {
     */
     Token_matcher("FLOAT", FLOAT),
     Token_matcher("INTEGER", INTEGER),
-    Token_matcher("INDENTATION_DEPTH", INDENTATION_DEPTH),
     Token_matcher("INDENT", INDENT),
-    Token_matcher("DEDENT", DEDENT),
+    Token_matcher("LINE_INDENT", LINE_INDENT),
+    Token_matcher("INDENT_LEVEL", INDENT_LEVEL),
     Token_matcher("UNIFORM", UNIFORM),
     Token_matcher("NAME", NAME),
     Token_matcher("INDEX", INDEX),
@@ -456,7 +446,9 @@ inline bool is_meta(const Token_kind& kind){
 inline bool is_quiet(const Token_kind& kind){
     return
         (kind == SCOPE_RES) ||
-        (kind == ARROW);
+        (kind == ARROW) ||
+        (kind == LINE_INDENT) ||
+        (kind == INDENT);
 }
 
 inline std::string kind_as_str(const Token_kind& kind) {

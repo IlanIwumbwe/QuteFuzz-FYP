@@ -2,6 +2,7 @@
 #include <generator.h>
 #include <params.h>
 #include <variable.h>
+#include <indent.h>
 
 int Context::ast_counter = -1;
 
@@ -24,11 +25,13 @@ void Context::reset(Reset_level l){
             nested_depth = control.get_value("NESTED_MAX_DEPTH");
             [[fallthrough]];
 
-        case RL_RESOURCES: {
-            get_current_circuit()->reset();
-
+        case RL_QUBITS:
+            get_current_circuit()->reset(Resource_kind::QUBIT);
             current_port = 0;
-        }
+            break;
+
+        case RL_BITS:
+            get_current_circuit()->reset(Resource_kind::BIT);
     }
 }
 
@@ -206,17 +209,6 @@ std::shared_ptr<UInt> Context::nn_circuit_id() {
     return std::make_shared<UInt>(ast_counter);
 }
 
-/// @brief Any stmt that is nested (if, elif, else) is a nested stmt. Any time such a node is used, reduce nested depth
-/// @param str
-/// @param kind
-/// @param parent
-/// @return
-std::shared_ptr<Nested_stmt> Context::nn_nested_stmt(const std::string& str, const Token_kind& kind){
-    reset(RL_RESOURCES);
-    nested_depth = (nested_depth == 0) ? 0 : nested_depth - 1;
-    return std::make_shared<Nested_stmt>(str, kind);
-}
-
 std::shared_ptr<Compound_stmt> Context::nn_compound_stmt(){
     return Compound_stmt::from_nested_depth(nested_depth);
 }
@@ -228,7 +220,8 @@ std::shared_ptr<Node> Context::nn_subroutines(){
 }
 
 std::shared_ptr<Qubit_op> Context::nn_qubit_op(){
-    reset(RL_RESOURCES);
+    reset(RL_QUBITS);
+    reset(RL_BITS);
 
     auto qubit_op = std::make_shared<Qubit_op>();
     current.set<Qubit_op>(qubit_op);
