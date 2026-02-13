@@ -121,7 +121,7 @@ while_stmt =
 
 for_stmt = for_range;
 
-for_range = 
+for_range =
     "with " CIRCUIT_NAME ".for_loop(range(" for_bound "), None):"
     NEWLINE INDENT<compound_stmts>;
 
@@ -179,8 +179,8 @@ compound_stmt =
     qubit_op
     | if_stmt
     # | while_stmt
-    | for_stmt        
-    # | switch_stmt     
+    | for_stmt
+    # | switch_stmt
     | barrier_op
     | reset_op;
 

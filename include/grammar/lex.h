@@ -192,7 +192,7 @@ const std::vector<Token_matcher> TOKEN_RULES = {
     Token_matcher("register_qubit", REGISTER_QUBIT),
     Token_matcher("singular_bit", SINGULAR_BIT),
     Token_matcher("register_bit", REGISTER_BIT),
-    Token_matcher("singular_param", SINGULAR_PARAM), 
+    Token_matcher("singular_param", SINGULAR_PARAM),
     Token_matcher("register_param", REGISTER_PARAM),
     Token_matcher("float_literal", FLOAT_LITERAL),
     Token_matcher("qubit_op", QUBIT_OP),

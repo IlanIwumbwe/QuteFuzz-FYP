@@ -122,10 +122,10 @@ std::shared_ptr<Circuit> Context::get_random_circuit(){
 std::shared_ptr<Resource> Context::get_random_resource(Resource_kind rk, Scope scope){
     Ptr_pred_type<Resource> pred = [](const std::shared_ptr<Resource>& elem){ return !elem->is_used(); };
 
-    auto filtered_coll = (scope == Scope::GLOB) ? 
-            dummies.circuit->get_coll<Resource>(rk) : 
+    auto filtered_coll = (scope == Scope::GLOB) ?
+            dummies.circuit->get_coll<Resource>(rk) :
             get_current_circuit()->get_coll<Resource>(rk);
-    
+
     auto random_resource = get_random_from_coll<Resource>(filtered_coll, pred);
     random_resource->set_used();
     // random_resource->extend_flow_path(current.get<Qubit_op>(), current_port++);
