@@ -25,17 +25,23 @@ qubit_def = singular_qubit_def | register_qubit_def;
 
 bit_def = singular_bit_def | register_bit_def;
 
+param_def = singular_param_def | register_param_def;
+
 
 INTERNAL {
     qubit_def = singular_qubit_def | register_qubit_def;
 
     bit_def = singular_bit_def | register_bit_def;
+
+    param_def = singular_param_def | register_param_def;
 }
 
 EXTERNAL {
     qubit_def = singular_qubit_def | register_qubit_def;
 
     bit_def = singular_bit_def | register_bit_def;
+
+    param_def = singular_param_def | register_param_def;
 }
 
 program       = imports NEWLINE circuit NEWLINE program_footer;
